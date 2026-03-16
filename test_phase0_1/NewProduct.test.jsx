@@ -1,6 +1,14 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+vi.mock("../src/api/supabaseClient", () => ({
+  supabase: {
+    from: vi.fn(),
+    functions: { invoke: vi.fn() },
+  },
+}));
+
 import NewProduct from "../src/pages/NewProduct";
 
 function renderNewProduct() {
@@ -82,15 +90,16 @@ describe("NewProduct", () => {
 
   it("disables submit button when product name is empty", () => {
     renderNewProduct();
-    const submitBtn = screen.getByText("Extract & Ingest Reviews");
+    const submitBtn = screen.getByText("Extract & Preview Reviews");
     expect(submitBtn).toBeDisabled();
   });
 
-  it("enables submit button when product name is filled", () => {
+  it("keeps submit disabled when only product name is filled (no review data)", () => {
     renderNewProduct();
     const input = screen.getByPlaceholderText(/notion|slack|figma/i);
     fireEvent.change(input, { target: { value: "TestProduct" } });
-    const submitBtn = screen.getByText("Extract & Ingest Reviews");
-    expect(submitBtn).not.toBeDisabled();
+    const submitBtn = screen.getByText("Extract & Preview Reviews");
+    // Button requires both product name AND review data (CSV/paste) to enable
+    expect(submitBtn).toBeDisabled();
   });
 });

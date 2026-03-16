@@ -15,23 +15,26 @@
 ## Phase 1: Ingestion Module
 ### 1A: NewProduct Page UI
 - [x] `NewProduct.jsx` — product name + platform dropdown + three-tab layout (URL / CSV / Paste)
-- [ ] `CSVUploader.jsx` — drag-drop zone with papaparse
-- [ ] `PasteReviews.jsx` — textarea input
-- [ ] `ReviewPreview.jsx` — editable table of parsed reviews + "Confirm & Ingest" button
+- [x] `CSVUploader.jsx` — drag-drop zone with papaparse, file validation, clear button
+- [x] `PasteReviews.jsx` — textarea input with character count
+- [x] `ReviewPreview.jsx` — editable table with star display, row delete, confirm button
 
 ### 1B: extract-reviews Edge Function
-- [ ] `POST /functions/v1/extract-reviews` — CSV mode (OpenAI fn-calling)
-- [ ] Paste mode (OpenAI fn-calling on raw text)
-- [ ] URL mode (HTML fetch → parse → fn-calling, graceful fallback)
-- [ ] Insert Product + Reviews into Postgres, compute rating stats
+- [x] `POST /functions/v1/extract-reviews` — CSV mode (OpenAI fn-calling with save_reviews tool)
+- [x] Paste mode (OpenAI fn-calling on raw text)
+- [x] URL mode (HTML content → fn-calling, graceful fallback)
+- [x] Insert Product + Reviews into Postgres, compute rating_distribution + average_rating
 
 ### 1C: embed-reviews Edge Function
-- [ ] `POST /functions/v1/embed-reviews` — batch embed + Pinecone upsert
-- [ ] Update `pinecone_vector_id` per review + set `product.status = 'ready'`
+- [x] `POST /functions/v1/embed-reviews` — batch embed via text-embedding-3-small + Pinecone upsert
+- [x] Update `pinecone_vector_id` per review + set `product.status = 'ready'`
+- [x] Error handling: sets product status to 'error' on failure
 
 ### 1D: Frontend Integration
-- [ ] Wire "Confirm & Ingest" → extract-reviews → embed-reviews → redirect
-- [ ] Loading states (spinner, progress bar) + error state with retry
+- [x] Wire Extract → Preview → Confirm → Save to DB → Embed → redirect to product page
+- [x] Loading states (spinner during extraction, saving overlay during ingestion)
+- [x] Error banner with message display
+- [x] Step flow: input → preview (with back button) → saving → redirect
 
 ## Phase 2: Product Detail Page
 - [x] `Product.jsx` — tabbed layout (Summary / Reviews / Chat)
@@ -67,7 +70,7 @@
 - [x] Responsive design (mobile-friendly) — built into components from start
 - [ ] Loading skeletons + toast notifications
 - [ ] Product deletion with Pinecone namespace cleanup
-- [ ] Error handling in all Edge Functions
+- [x] Error handling in Edge Functions (extract-reviews, embed-reviews)
 - [ ] Final deployment: `supabase db push` → deploy functions → `vercel --prod`
 - [x] `.env.example` with placeholder keys
 
@@ -83,38 +86,33 @@
 | 2026-03-16 | 0 | Supabase client + .env.example | DONE |
 | 2026-03-16 | 0 | Layout + routing (/, /new, /product) | DONE |
 | 2026-03-16 | 0 | PostCSS + Tailwind v4 config | DONE |
-| 2026-03-16 | 1A | NewProduct.jsx with 3-tab ingestion form (URL/CSV/Paste) | DONE |
-| 2026-03-16 | 2 | Product.jsx with tabbed layout (Summary/Reviews/Chat) | DONE |
+| 2026-03-16 | 0 | Test suite: 56 tests across 8 files — all passing | DONE |
+| 2026-03-16 | 1A | CSVUploader.jsx — drag-drop, file validation, Papa.parse, clear | DONE |
+| 2026-03-16 | 1A | PasteReviews.jsx — textarea with character count | DONE |
+| 2026-03-16 | 1A | ReviewPreview.jsx — table with stars, row delete, confirm button | DONE |
+| 2026-03-16 | 1B | extract-reviews Edge Function — full OpenAI fn-calling pipeline | DONE |
+| 2026-03-16 | 1B | CSV/paste/URL modes with intelligent column mapping | DONE |
+| 2026-03-16 | 1B | Postgres insert + rating stats computation | DONE |
+| 2026-03-16 | 1C | embed-reviews Edge Function — batch embed + Pinecone upsert | DONE |
+| 2026-03-16 | 1C | pinecone_vector_id update + product status management | DONE |
+| 2026-03-16 | 1D | NewProduct.jsx full rewrite — 3-step flow with state management | DONE |
+| 2026-03-16 | 1D | Extract → Preview → Confirm → Embed → redirect pipeline | DONE |
+| 2026-03-16 | 1 | All 56 tests passing after Phase 1 changes | DONE |
 | 2026-03-16 | 4 | Dashboard.jsx with StatsOverview + ProductCard + empty state | DONE |
-| 2026-03-16 | 0 | Edge Function placeholders (extract-reviews, embed-reviews, chat-rag) | DONE |
-| 2026-03-16 | 0 | Build verified — `npm run build` passes | DONE |
+| 2026-03-16 | 2 | Product.jsx with tabbed layout (Summary/Reviews/Chat) | DONE |
 
 ---
 
-## Files Created This Session
+## Files Created/Modified in Phase 1
 
 ```
-src/
-├── api/supabaseClient.js
-├── lib/utils.js
-├── components/Layout.jsx
-├── pages/Dashboard.jsx
-├── pages/NewProduct.jsx
-├── pages/Product.jsx
-├── index.css (Tailwind v4)
-├── main.jsx (BrowserRouter)
-├── App.jsx (Routes)
-supabase/
-├── migrations/001_create_tables.sql
-├── functions/_shared/openai.ts
-├── functions/_shared/pinecone.ts
-├── functions/_shared/supabase.ts
-├── functions/_shared/cors.ts
-├── functions/extract-reviews/index.ts (placeholder)
-├── functions/embed-reviews/index.ts (placeholder)
-├── functions/chat-rag/index.ts (placeholder)
-postcss.config.js
-.env.example
-.gitignore (updated)
-index.html (updated)
+src/components/ingestion/
+├── CSVUploader.jsx          ← drag-drop CSV with Papa.parse
+├── PasteReviews.jsx         ← textarea with character count
+├── ReviewPreview.jsx        ← editable review table + confirm button
+src/pages/
+├── NewProduct.jsx           ← rewritten with 3-step flow + state mgmt
+supabase/functions/
+├── extract-reviews/index.ts ← full OpenAI fn-calling extraction
+├── embed-reviews/index.ts   ← batch embedding + Pinecone upsert
 ```

@@ -2,14 +2,14 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("../src/api/supabaseClient", () => ({
+vi.mock("../../src/api/supabaseClient", () => ({
   supabase: {
     from: vi.fn(),
   },
 }));
 
-import Product from "../src/pages/Product";
-import { supabase } from "../src/api/supabaseClient";
+import Product from "../../src/pages/Product";
+import { supabase } from "../../src/api/supabaseClient";
 
 function renderProduct(id = "test-uuid") {
   return render(

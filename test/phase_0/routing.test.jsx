@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi } from "vitest";
 
-vi.mock("../src/api/supabaseClient", () => ({
+vi.mock("../../src/api/supabaseClient", () => ({
   supabase: {
     from: vi.fn(() => ({
       select: () => ({
@@ -15,7 +15,7 @@ vi.mock("../src/api/supabaseClient", () => ({
   },
 }));
 
-import App from "../src/App";
+import App from "../../src/App";
 
 function renderApp(route = "/") {
   return render(

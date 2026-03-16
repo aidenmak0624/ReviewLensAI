@@ -3,14 +3,14 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock supabase before importing Dashboard
-vi.mock("../src/api/supabaseClient", () => ({
+vi.mock("../../src/api/supabaseClient", () => ({
   supabase: {
     from: vi.fn(),
   },
 }));
 
-import Dashboard from "../src/pages/Dashboard";
-import { supabase } from "../src/api/supabaseClient";
+import Dashboard from "../../src/pages/Dashboard";
+import { supabase } from "../../src/api/supabaseClient";
 
 function renderDashboard() {
   return render(

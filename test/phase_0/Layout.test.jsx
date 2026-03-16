@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect } from "vitest";
-import Layout from "../src/components/Layout";
+import Layout from "../../src/components/Layout";
 
 function renderWithRouter(ui, { route = "/" } = {}) {
   return render(<MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>);

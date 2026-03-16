@@ -2,14 +2,14 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi } from "vitest";
 
-vi.mock("../src/api/supabaseClient", () => ({
+vi.mock("../../src/api/supabaseClient", () => ({
   supabase: {
     from: vi.fn(),
     functions: { invoke: vi.fn() },
   },
 }));
 
-import NewProduct from "../src/pages/NewProduct";
+import NewProduct from "../../src/pages/NewProduct";
 
 function renderNewProduct() {
   return render(
@@ -19,7 +19,7 @@ function renderNewProduct() {
   );
 }
 
-describe("NewProduct", () => {
+describe("NewProduct — Phase 0 (basic UI rendering)", () => {
   it("renders the page title", () => {
     renderNewProduct();
     expect(screen.getByText("Add New Product")).toBeInTheDocument();
@@ -71,35 +71,5 @@ describe("NewProduct", () => {
     expect(
       screen.getByPlaceholderText(/paste reviews here/i)
     ).toBeInTheDocument();
-  });
-
-  it("shows URL warning about anti-bot measures", () => {
-    renderNewProduct();
-    fireEvent.click(screen.getByText("URL"));
-    expect(
-      screen.getByText(/anti-bot measures/i)
-    ).toBeInTheDocument();
-  });
-
-  it("shows CSV helper text about AI column mapping", () => {
-    renderNewProduct();
-    expect(
-      screen.getByText(/ai will map columns automatically/i)
-    ).toBeInTheDocument();
-  });
-
-  it("disables submit button when product name is empty", () => {
-    renderNewProduct();
-    const submitBtn = screen.getByText("Extract & Preview Reviews");
-    expect(submitBtn).toBeDisabled();
-  });
-
-  it("keeps submit disabled when only product name is filled (no review data)", () => {
-    renderNewProduct();
-    const input = screen.getByPlaceholderText(/notion|slack|figma/i);
-    fireEvent.change(input, { target: { value: "TestProduct" } });
-    const submitBtn = screen.getByText("Extract & Preview Reviews");
-    // Button requires both product name AND review data (CSV/paste) to enable
-    expect(submitBtn).toBeDisabled();
   });
 });

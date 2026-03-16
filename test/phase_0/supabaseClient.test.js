@@ -10,7 +10,7 @@ vi.mock("@supabase/supabase-js", () => ({
 
 describe("supabaseClient", () => {
   it("exports a supabase client instance", async () => {
-    const { supabase } = await import("../src/api/supabaseClient");
+    const { supabase } = await import("../../src/api/supabaseClient");
     expect(supabase).toBeDefined();
     expect(supabase.from).toBeDefined();
     expect(supabase.functions).toBeDefined();

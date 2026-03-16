@@ -3,7 +3,7 @@ import { readFileSync } from "fs";
 import { resolve } from "path";
 
 const migrationSQL = readFileSync(
-  resolve(__dirname, "../supabase/migrations/001_create_tables.sql"),
+  resolve(__dirname, "../../supabase/migrations/001_create_tables.sql"),
   "utf-8"
 );
 

@@ -142,7 +142,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Insert reviews into Postgres
+    // If product_id is "preview", skip DB operations — just return extracted reviews
+    // The frontend will handle DB insertion in the confirm step
+    if (product_id === "preview") {
+      return new Response(
+        JSON.stringify({
+          reviews,
+          review_ids: [],
+          count: reviews.length,
+          extraction_method: "openai_function_calling",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Insert reviews into Postgres (only when a real product_id is provided)
     const reviewRows = reviews.map((r: any) => ({
       product_id,
       reviewer_name: r.reviewer_name || "Anonymous",

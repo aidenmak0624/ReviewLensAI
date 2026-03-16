@@ -3,6 +3,10 @@ import { useSearchParams, Link } from "react-router-dom";
 import { supabase } from "../api/supabaseClient";
 import { ArrowLeft, FileText, BarChart3, MessageCircle } from "lucide-react";
 import { cn } from "../lib/utils";
+import IngestionSummary from "../components/product/IngestionSummary";
+import ReviewTable from "../components/product/ReviewTable";
+import SentimentChart from "../components/product/SentimentChart";
+import ChatInterface from "../components/chat/ChatInterface";
 
 const TABS = [
   { id: "summary", label: "Summary", icon: FileText },
@@ -14,30 +18,50 @@ export default function Product() {
   const [searchParams] = useSearchParams();
   const productId = searchParams.get("id");
   const [product, setProduct] = useState(null);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("summary");
 
   useEffect(() => {
-    async function fetchProduct() {
-      if (!productId) return;
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .eq("id", productId)
-        .single();
+    async function fetchData() {
+      if (!productId) {
+        setLoading(false);
+        return;
+      }
 
-      if (!error && data) {
-        setProduct(data);
+      // Fetch product and reviews in parallel
+      const [productRes, reviewsRes] = await Promise.all([
+        supabase.from("products").select("*").eq("id", productId).single(),
+        supabase
+          .from("reviews")
+          .select("*")
+          .eq("product_id", productId)
+          .order("review_date", { ascending: false }),
+      ]);
+
+      if (!productRes.error && productRes.data) {
+        setProduct(productRes.data);
+      }
+      if (!reviewsRes.error && reviewsRes.data) {
+        setReviews(reviewsRes.data);
       }
       setLoading(false);
     }
-    fetchProduct();
+    fetchData();
   }, [productId]);
 
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="bg-white rounded-lg border border-border p-6 h-32 animate-pulse" />
+        <div className="bg-white rounded-lg border border-border p-6 h-16 animate-pulse" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="bg-white rounded-lg border border-border p-6 h-24 animate-pulse"
+            />
+          ))}
+        </div>
         <div className="bg-white rounded-lg border border-border p-6 h-64 animate-pulse" />
       </div>
     );
@@ -96,23 +120,32 @@ export default function Product() {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white rounded-lg border border-border p-6">
-        {activeTab === "summary" && (
-          <div className="text-center text-muted-foreground py-8">
-            Ingestion summary will appear here after reviews are ingested.
+      {activeTab === "summary" && (
+        <div className="space-y-6">
+          <IngestionSummary product={product} reviews={reviews} />
+          <div className="bg-white rounded-lg border border-border p-6">
+            <SentimentChart reviews={reviews} />
           </div>
-        )}
-        {activeTab === "reviews" && (
-          <div className="text-center text-muted-foreground py-8">
-            Review table will appear here after reviews are ingested.
-          </div>
-        )}
-        {activeTab === "chat" && (
-          <div className="text-center text-muted-foreground py-8">
-            Chat interface will appear here after reviews are embedded.
-          </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {activeTab === "reviews" && (
+        <div className="bg-white rounded-lg border border-border p-6">
+          <ReviewTable reviews={reviews} />
+        </div>
+      )}
+
+      {activeTab === "chat" && (
+        <div className="bg-white rounded-lg border border-border overflow-hidden" style={{ height: "500px" }}>
+          {product.status === "ready" ? (
+            <ChatInterface product={product} />
+          ) : (
+            <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+              Chat will be available after reviews are embedded.
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -32,6 +32,21 @@ ingested dataset.
 
 **Never introduce a paid service or a new major dependency without flagging it.**
 
+### Infrastructure Status (as of 2026-03-16)
+
+| Service | Instance | Status |
+|---------|----------|--------|
+| **Supabase** | Project created | ✅ Active |
+| **Pinecone** | Index: `reviewlensai` · Dimension: 1536 · Metric: cosine | ✅ Created |
+| **Vercel** | https://reviewlens.vercel.app | ✅ Deployed |
+| **OpenAI** | GPT-4o + text-embedding-3-small | Needs API key as Edge Function secret |
+
+### Pinecone Configuration
+- **Index name:** `reviewlensai` (hardcoded fallback in `supabase/functions/_shared/pinecone.ts`)
+- **Dimension:** 1536 (matches `text-embedding-3-small` output)
+- **Metric:** cosine
+- **Namespace pattern:** `product-{uuid}` — one namespace per product, resolved server-side only
+
 ---
 
 ## 3. Project Structure

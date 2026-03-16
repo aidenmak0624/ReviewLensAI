@@ -10,7 +10,7 @@
 - [x] Create `_shared/openai.ts` + `pinecone.ts` Edge Function utility modules
 - [x] Create `src/api/supabaseClient.js` — single Supabase client instance
 - [x] Create `Layout.jsx` with top nav + route setup (`/`, `/new`, `/product`)
-- [ ] Verify Vercel deployment with blank app
+- [x] Verify Supabase connection (products + reviews tables live, RLS enabled)
 
 ## Phase 1: Ingestion Module
 ### 1A: NewProduct Page UI
@@ -37,28 +37,34 @@
 - [x] Step flow: input → preview (with back button) → saving → redirect
 
 ## Phase 2: Product Detail Page
-- [x] `Product.jsx` — tabbed layout (Summary / Reviews / Chat)
-- [ ] `IngestionSummary.jsx` — method badge, timestamp, total reviews, date range
-- [ ] `RatingDistribution.jsx` — horizontal bar chart (1-5 stars) with Recharts
-- [ ] `SentimentChart.jsx` — positive/neutral/negative stacked bar
-- [ ] `ReviewTable.jsx` — search + star-filter + pagination
+- [x] `Product.jsx` — tabbed layout (Summary / Reviews / Chat) + fetches reviews from Supabase
+- [x] `IngestionSummary.jsx` — stats tiles, method badge, timestamp, date range, Recharts bar + pie charts
+- [x] `RatingDistribution.jsx` — horizontal bar chart (1-5 stars) with proportional fill
+- [x] `SentimentChart.jsx` — emoji sentiment cards + stacked horizontal bar (green/yellow/red)
+- [x] `ReviewTable.jsx` — search + star-filter pills + pagination (10/page) + expandable rows
 
 ## Phase 3: RAG Chat Interface
 ### 3A: chat-rag Edge Function
-- [ ] Server-side namespace resolution from Postgres
-- [ ] Embed question → Pinecone topK=8 retrieval → context assembly
-- [ ] Guardrailed system prompt with 5 rules
-- [ ] GPT-4o streaming via ReadableStream → SSE
+- [x] Server-side namespace resolution from Postgres (Layer 1 — structural guard)
+- [x] Embed question → Pinecone topK=8 retrieval → context assembly
+- [x] Guardrailed system prompt with 5 strict rules (Layer 2 — instructional guard)
+- [x] GPT-4o streaming via ReadableStream → SSE (token-by-token)
+- [x] Conversation history support (last 10 exchanges)
+- [x] Error handling with graceful stream fallback
 
 ### 3B: Chat Frontend
-- [ ] `ChatInterface.jsx` — input bar + message list + SSE stream consumer
-- [ ] `MessageBubble.jsx` — user/assistant styling + typing indicator
-- [ ] Multi-turn conversation history
-- [ ] `[Review N]` citation highlighting
+- [x] `ChatInterface.jsx` — input bar + message list + SSE stream consumer via fetch
+- [x] `MessageBubble.jsx` — user/assistant bubbles + typing indicator (3 animated dots)
+- [x] Multi-turn conversation history (maintained in React state)
+- [x] `[Review N]` citation highlighting (blue badge inline rendering)
+- [x] Auto-scroll to latest message
+- [x] Loading state (spinner on send button during streaming)
+- [x] Wired into Product.jsx Chat tab (only active when product status is "ready")
 
 ### 3C: Scope Guard Verification
-- [ ] Test all 6 scope guard queries from CLAUDE.md §10
-- [ ] Verify namespace resolved server-side only
+- [x] Chat grounded response with [Review N] citations — verified live
+- [x] Namespace resolved server-side from Postgres (code audit confirmed)
+- [ ] Full 6-query scope guard test suite (manual testing remaining)
 
 ## Phase 4: Dashboard
 - [x] `Dashboard.jsx` — product grid + "Add Product" CTA
@@ -71,8 +77,12 @@
 - [ ] Loading skeletons + toast notifications
 - [ ] Product deletion with Pinecone namespace cleanup
 - [x] Error handling in Edge Functions (extract-reviews, embed-reviews)
-- [ ] Final deployment: `supabase db push` → deploy functions → `vercel --prod`
+- [x] Bug fix: extract-reviews preview mode (skip DB ops when product_id="preview")
+- [x] Bug fix: Pinecone API key secret corrected in Supabase
+- [x] All 3 Edge Functions deployed to Supabase
+- [x] Vercel deployment connected to GitHub (auto-deploy on push)
 - [x] `.env.example` with placeholder keys
+- [x] End-to-end verification: ingest → charts → chat with citations
 
 ---
 
@@ -100,12 +110,40 @@
 | 2026-03-16 | 1 | All 56 tests passing after Phase 1 changes | DONE |
 | 2026-03-16 | 4 | Dashboard.jsx with StatsOverview + ProductCard + empty state | DONE |
 | 2026-03-16 | 2 | Product.jsx with tabbed layout (Summary/Reviews/Chat) | DONE |
+| 2026-03-16 | Infra | Pinecone index "reviewlensai" created (1536d, cosine) | DONE |
+| 2026-03-16 | Infra | Supabase project created | DONE |
+| 2026-03-16 | Infra | Updated CLAUDE.md with infrastructure status section | DONE |
+| 2026-03-16 | Infra | Enhanced .env.example with full setup checklist | DONE |
+| 2026-03-16 | Infra | All API keys set in .env (Supabase, OpenAI, Pinecone) | DONE |
+| 2026-03-16 | Infra | Supabase Edge Functions deployed | DONE |
+| 2026-03-16 | Infra | Supabase secrets set (OPENAI_API_KEY, PINECONE_API_KEY, PINECONE_INDEX) | DONE |
+| 2026-03-16 | Infra | DB migration run — products + reviews tables live | DONE |
+| 2026-03-16 | Infra | RLS policies applied (public read/write, no auth) | DONE |
+| 2026-03-16 | Infra | Supabase connection verified — both tables accessible (0 rows) | DONE |
+| 2026-03-16 | Infra | Frontend verified — Dashboard, NewProduct, all 3 tabs working | DONE |
+| 2026-03-16 | 2 | IngestionSummary.jsx — stats tiles + Recharts bar/pie charts | DONE |
+| 2026-03-16 | 2 | RatingDistribution.jsx — horizontal bar chart (CSS, no Recharts dep) | DONE |
+| 2026-03-16 | 2 | SentimentChart.jsx — emoji cards + stacked bar | DONE |
+| 2026-03-16 | 2 | ReviewTable.jsx — search, star filter, pagination, expandable rows | DONE |
+| 2026-03-16 | 2 | Product.jsx rewired — fetches reviews, renders all 3 tab contents | DONE |
+| 2026-03-16 | 2 | Visual verification — all charts + tables rendering with test data | DONE |
+| 2026-03-16 | 3A | chat-rag Edge Function — full RAG pipeline with 2-layer scope guard | DONE |
+| 2026-03-16 | 3B | ChatInterface.jsx — SSE stream consumer + message history | DONE |
+| 2026-03-16 | 3B | MessageBubble.jsx — styled bubbles + citation badges + typing dots | DONE |
+| 2026-03-16 | 3B | Product.jsx Chat tab wired to ChatInterface | DONE |
+| 2026-03-16 | Deploy | All 3 Edge Functions deployed (extract-reviews, embed-reviews, chat-rag) | DONE |
+| 2026-03-16 | Bugfix | extract-reviews: skip DB ops in preview mode (product_id="preview") | DONE |
+| 2026-03-16 | Bugfix | Pinecone API key secret corrected in Supabase | DONE |
+| 2026-03-16 | E2E | Full pipeline verified: paste → extract → preview → ingest → embed → chat | DONE |
+| 2026-03-16 | E2E | Chat RAG verified: grounded response with [Review N] citation badges | DONE |
+| 2026-03-16 | Deploy | Vercel connected to GitHub — auto-deploy on push | DONE |
 
 ---
 
-## Files Created/Modified in Phase 1
+## Files Created/Modified
 
 ```
+Phase 1:
 src/components/ingestion/
 ├── CSVUploader.jsx          ← drag-drop CSV with Papa.parse
 ├── PasteReviews.jsx         ← textarea with character count
@@ -115,4 +153,87 @@ src/pages/
 supabase/functions/
 ├── extract-reviews/index.ts ← full OpenAI fn-calling extraction
 ├── embed-reviews/index.ts   ← batch embedding + Pinecone upsert
+
+Phase 2:
+src/components/product/
+├── IngestionSummary.jsx     ← stats tiles + Recharts bar & pie charts
+├── RatingDistribution.jsx   ← horizontal bar chart (standalone, CSS)
+├── SentimentChart.jsx       ← emoji sentiment cards + stacked bar
+├── ReviewTable.jsx          ← search + star-filter + pagination
+src/pages/
+├── Product.jsx              ← rewired with all tab content + review fetching
+
+Phase 3:
+src/components/chat/
+├── ChatInterface.jsx        ← SSE stream consumer + message list + input
+├── MessageBubble.jsx        ← user/assistant bubbles + [Review N] citations
+supabase/functions/
+├── chat-rag/index.ts        ← full RAG pipeline (embed → retrieve → stream)
+src/pages/
+├── Product.jsx              ← Chat tab wired to ChatInterface
+```
+
+---
+
+## User Workflow — How to Use ReviewLens AI
+
+### Step 1: Dashboard (Landing Page)
+**Page:** `/`
+The dashboard shows aggregate stats (total products, reviews, average rating) and a grid of product cards. Each card displays the product name, platform badge (G2, Amazon, etc.), review count, rating, and status. Click "+ Add Product" or a product card to navigate.
+
+### Step 2: Add New Product
+**Page:** `/new`
+1. Enter a **Product Name** (e.g., "Notion") and select the **Platform** (G2, Amazon, Google Maps, Yelp, Capterra)
+2. Choose an ingestion method via tabs:
+   - **URL** — paste a review page URL (may be blocked by anti-bot measures)
+   - **CSV Upload** — drag & drop or browse for a .csv file (any column format — AI maps automatically)
+   - **Paste Text** — paste raw review text in any format
+3. Click **"Extract & Preview Reviews"** — the AI (OpenAI GPT-4o) extracts structured review data
+
+### Step 3: Review Preview
+After extraction, a preview table appears showing:
+- Reviewer name, star rating (visual stars), date, review text
+- Delete button (trash icon) to remove incorrect rows
+- Click **"Confirm & Ingest N Reviews"** to save
+
+### Step 4: Ingestion Processing
+The system automatically:
+1. Creates the product record in Supabase
+2. Inserts all reviews into the reviews table
+3. Computes rating distribution and average rating
+4. Generates vector embeddings (text-embedding-3-small)
+5. Upserts vectors to Pinecone (namespace: `product-{id}`)
+6. Sets product status to "ready"
+7. Redirects to the product page
+
+### Step 5: Product Detail — Summary Tab
+**Page:** `/product?id={uuid}`
+The Summary tab shows:
+- **Stats tiles:** Total Reviews, Average Rating (with star), Date Range, Ingestion Method + timestamp
+- **Rating Distribution:** Horizontal bar chart (5★ to 1★) with counts
+- **Sentiment Breakdown:** Pie chart (Recharts) + emoji cards (Positive/Neutral/Negative) + stacked bar
+
+### Step 6: Product Detail — Reviews Tab
+Searchable, filterable review table:
+- **Search bar** — filters by review text content
+- **Star filter pills** — click 1★–5★ to filter by rating, "All" to reset
+- **Paginated table** — 10 reviews per page, Previous/Next navigation
+- **Expandable rows** — click long reviews to expand full text
+
+### Step 7: Product Detail — Chat Tab (RAG Q&A)
+The guardrailed conversational AI interface:
+- Type a question about the product's reviews (e.g., "What are the top complaints?")
+- The AI retrieves the 8 most relevant review chunks from Pinecone
+- GPT-4o generates a streaming response, grounded ONLY in the retrieved reviews
+- **[Review N] citation badges** appear inline for every factual claim
+- Multi-turn conversation — follow-up questions maintain context
+- **Scope guard:** Questions about other platforms, competitors, or off-topic subjects are explicitly declined
+
+### Architecture Flow
+```
+User Input → extract-reviews (OpenAI fn-calling) → Supabase Postgres
+                                                      ↓
+                                              embed-reviews (OpenAI embeddings → Pinecone)
+                                                      ↓
+User Question → chat-rag (embed question → Pinecone topK=8 → GPT-4o SSE stream) → Chat UI
 ```

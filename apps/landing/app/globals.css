@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #0F1929;
+  --color-teal: #0F7B6C;
+  --color-mint: #9FE1CB;
+  --color-gray-50: #F9FAFB;
+  --color-gray-600: #4B5563;
+  --color-danger: #EF4444;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-gray-600);
+  background: #ffffff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

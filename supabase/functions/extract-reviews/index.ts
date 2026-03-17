@@ -55,6 +55,160 @@ const REVIEW_TOOL = {
   },
 };
 
+/** Maximum number of CSV rows to process per LLM call */
+const CHUNK_SIZE = 50;
+
+/** Column name aliases for direct CSV mapping (case-insensitive) */
+const COLUMN_ALIASES: Record<string, string[]> = {
+  reviewer_name: ["reviewer_name", "reviewer", "name", "author", "user", "username", "user_name"],
+  rating: ["rating", "stars", "score", "star_rating", "star"],
+  review_text: ["review_text", "review", "text", "comment", "body", "content", "feedback", "description"],
+  review_date: ["review_date", "date", "review_date", "created_at", "timestamp", "time", "posted"],
+  verified: ["verified", "verified_purchase", "is_verified"],
+  helpful_count: ["helpful_count", "helpful", "helpful_votes", "upvotes", "likes", "thumbs_up"],
+};
+
+/**
+ * Try to map CSV columns directly without LLM.
+ * Returns mapped reviews if at least reviewer_name/review_text columns are found.
+ * Returns null if columns can't be confidently mapped.
+ */
+function tryDirectCSVMapping(csvText: string): any[] | null {
+  const lines = csvText.split("\n").filter((l) => l.trim());
+  if (lines.length < 2) return null; // header + at least 1 row
+
+  // Parse header — handle quoted headers
+  const headerLine = lines[0];
+  const headers = parseCSVLine(headerLine).map((h) => h.trim().toLowerCase().replace(/[^a-z0-9_]/g, "_"));
+
+  // Try to map each header to a known field
+  const columnMap: Record<string, number> = {};
+  for (const [field, aliases] of Object.entries(COLUMN_ALIASES)) {
+    for (let i = 0; i < headers.length; i++) {
+      if (aliases.includes(headers[i])) {
+        columnMap[field] = i;
+        break;
+      }
+    }
+  }
+
+  // Require at least review_text to proceed
+  if (columnMap.review_text === undefined) return null;
+
+  // Parse all data rows
+  const reviews: any[] = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseCSVLine(lines[i]);
+    if (!cols.length) continue;
+
+    const reviewText = cols[columnMap.review_text]?.trim();
+    if (!reviewText) continue;
+
+    const rating = columnMap.rating !== undefined ? parseInt(cols[columnMap.rating]) : 3;
+    const verified = columnMap.verified !== undefined ? parseBool(cols[columnMap.verified]) : false;
+    const helpful = columnMap.helpful_count !== undefined ? parseInt(cols[columnMap.helpful_count]) || 0 : 0;
+
+    reviews.push({
+      reviewer_name: columnMap.reviewer_name !== undefined ? cols[columnMap.reviewer_name]?.trim() || "Anonymous" : "Anonymous",
+      rating: isNaN(rating) ? 3 : Math.max(1, Math.min(5, rating)),
+      review_text: reviewText,
+      review_date: columnMap.review_date !== undefined ? cols[columnMap.review_date]?.trim() || null : null,
+      verified,
+      helpful_count: helpful,
+    });
+  }
+
+  return reviews.length > 0 ? reviews : null;
+}
+
+/** Parse a single CSV line respecting quoted fields */
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+        current += '"';
+        i++; // skip escaped quote
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === "," && !inQuotes) {
+      result.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  result.push(current);
+  return result;
+}
+
+function parseBool(val: string): boolean {
+  const v = val?.trim().toLowerCase();
+  return v === "true" || v === "1" || v === "yes";
+}
+
+/** Split text into chunks of roughly CHUNK_SIZE CSV rows (for CSV) or by character count */
+function chunkInput(rawInput: string, mode: string): string[] {
+  if (mode === "csv") {
+    const lines = rawInput.split("\n");
+    const header = lines[0];
+    const dataLines = lines.slice(1).filter((l) => l.trim());
+
+    if (dataLines.length <= CHUNK_SIZE) return [rawInput];
+
+    const chunks: string[] = [];
+    for (let i = 0; i < dataLines.length; i += CHUNK_SIZE) {
+      const slice = dataLines.slice(i, i + CHUNK_SIZE);
+      chunks.push(header + "\n" + slice.join("\n"));
+    }
+    return chunks;
+  }
+
+  // For paste/url: chunk by character count (~15000 chars per chunk)
+  const MAX_CHARS = 15000;
+  if (rawInput.length <= MAX_CHARS) return [rawInput];
+
+  const chunks: string[] = [];
+  let remaining = rawInput;
+  while (remaining.length > 0) {
+    if (remaining.length <= MAX_CHARS) {
+      chunks.push(remaining);
+      break;
+    }
+    // Find a good split point (double newline or newline)
+    let splitAt = remaining.lastIndexOf("\n\n", MAX_CHARS);
+    if (splitAt < MAX_CHARS * 0.5) splitAt = remaining.lastIndexOf("\n", MAX_CHARS);
+    if (splitAt < MAX_CHARS * 0.5) splitAt = MAX_CHARS;
+    chunks.push(remaining.substring(0, splitAt));
+    remaining = remaining.substring(splitAt).trim();
+  }
+  return chunks;
+}
+
+/** Call OpenAI to extract reviews from a single chunk */
+async function extractChunk(chunk: string, systemPrompt: string): Promise<any[]> {
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: chunk },
+    ],
+    tools: [REVIEW_TOOL],
+    tool_choice: { type: "function", function: { name: "save_reviews" } },
+    temperature: 0,
+  });
+
+  const toolCall = completion.choices[0]?.message?.tool_calls?.[0];
+  if (!toolCall) return [];
+
+  const extracted = JSON.parse(toolCall.function.arguments);
+  return extracted.reviews || [];
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -83,60 +237,57 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Build prompt based on mode
-    let systemPrompt = "";
+    let reviews: any[] = [];
+
+    // ── Fast path: try direct CSV column mapping (no LLM needed) ──
     if (mode === "csv") {
-      systemPrompt =
-        "You are a data extraction assistant. The user will provide CSV data containing product reviews. " +
-        "Extract ALL reviews from the CSV. Map columns intelligently — column names may vary " +
-        "(e.g., 'stars', 'score', 'rating' all mean the rating field). " +
-        "If a rating is not on a 1-5 scale, normalize it to 1-5. " +
-        "Use the save_reviews function to return the extracted data.";
-    } else if (mode === "paste") {
-      systemPrompt =
-        "You are a data extraction assistant. The user will provide raw text containing product reviews. " +
-        "The text may be in any format — copied from a website, informal notes, etc. " +
-        "Extract ALL individual reviews you can identify. Infer ratings, reviewer names, and dates where possible. " +
-        "If a rating is expressed as words (e.g., 'excellent'), convert to a 1-5 scale. " +
-        "Use the save_reviews function to return the extracted data.";
-    } else {
-      systemPrompt =
-        "You are a data extraction assistant. The user will provide HTML or text content from a review page. " +
-        "Extract ALL individual reviews you can identify from this content. " +
-        "Use the save_reviews function to return the extracted data.";
+      const directMapped = tryDirectCSVMapping(raw_input);
+      if (directMapped && directMapped.length > 0) {
+        console.log(`Direct CSV mapping: ${directMapped.length} reviews extracted without LLM`);
+        reviews = directMapped;
+      }
     }
 
-    // Call OpenAI with function-calling
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: raw_input },
-      ],
-      tools: [REVIEW_TOOL],
-      tool_choice: { type: "function", function: { name: "save_reviews" } },
-      temperature: 0,
-    });
+    // ── LLM extraction path (with chunking for large inputs) ──
+    if (reviews.length === 0) {
+      // Build prompt based on mode
+      let systemPrompt = "";
+      if (mode === "csv") {
+        systemPrompt =
+          "You are a data extraction assistant. The user will provide CSV data containing product reviews. " +
+          "Extract ALL reviews from the CSV. Map columns intelligently — column names may vary " +
+          "(e.g., 'stars', 'score', 'rating' all mean the rating field). " +
+          "If a rating is not on a 1-5 scale, normalize it to 1-5. " +
+          "Use the save_reviews function to return the extracted data.";
+      } else if (mode === "paste") {
+        systemPrompt =
+          "You are a data extraction assistant. The user will provide raw text containing product reviews. " +
+          "The text may be in any format — copied from a website, informal notes, etc. " +
+          "Extract ALL individual reviews you can identify. Infer ratings, reviewer names, and dates where possible. " +
+          "If a rating is expressed as words (e.g., 'excellent'), convert to a 1-5 scale. " +
+          "Use the save_reviews function to return the extracted data.";
+      } else {
+        systemPrompt =
+          "You are a data extraction assistant. The user will provide HTML or text content from a review page. " +
+          "Extract ALL individual reviews you can identify from this content. " +
+          "Use the save_reviews function to return the extracted data.";
+      }
 
-    const toolCall = completion.choices[0]?.message?.tool_calls?.[0];
-    if (!toolCall) {
-      return new Response(
-        JSON.stringify({
-          error: "EXTRACTION_FAILED",
-          message: "OpenAI function-calling returned no results — check input format",
-        }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      const chunks = chunkInput(raw_input, mode);
+      console.log(`Processing ${chunks.length} chunk(s) via LLM`);
+
+      // Process chunks — sequential to avoid rate limits
+      for (const chunk of chunks) {
+        const chunkReviews = await extractChunk(chunk, systemPrompt);
+        reviews.push(...chunkReviews);
+      }
     }
-
-    const extracted = JSON.parse(toolCall.function.arguments);
-    const reviews = extracted.reviews || [];
 
     if (reviews.length === 0) {
       return new Response(
         JSON.stringify({
           error: "EXTRACTION_FAILED",
-          message: "OpenAI function-calling returned zero reviews — check input format",
+          message: "No reviews could be extracted — check input format",
         }),
         { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

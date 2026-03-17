@@ -196,7 +196,13 @@ export default function Product() {
       {activeTab === "chat" && (
         <div className="bg-white rounded-lg border border-border overflow-hidden" style={{ height: "500px" }}>
           {product.status === "ready" ? (
-            <ChatInterface product={product} />
+            <ChatInterface
+              product={product}
+              onCitationClick={(review) => {
+                setDrawerReview(review);
+                setDrawerOpen(true);
+              }}
+            />
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
               Chat will be available after reviews are embedded.

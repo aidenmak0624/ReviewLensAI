@@ -1,23 +1,91 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import MessageBubble from "./MessageBubble";
 import SkillSelector from "./SkillSelector";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, Trash2 } from "lucide-react";
 
-export default function ChatInterface({ product }) {
-  const [messages, setMessages] = useState([]);
+/** Build a localStorage key for this product + skill combo */
+function storageKey(productId, skill) {
+  return `reviewlens_chat_${productId}_${skill}`;
+}
+
+/** Load persisted chat from localStorage */
+function loadChat(productId, skill) {
+  try {
+    const raw = localStorage.getItem(storageKey(productId, skill));
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        messages: parsed.messages || [],
+        citations: parsed.citations || {},
+      };
+    }
+  } catch {
+    // ignore corrupt data
+  }
+  return { messages: [], citations: {} };
+}
+
+/** Save chat to localStorage */
+function saveChat(productId, skill, messages, citations) {
+  try {
+    // Only save completed messages (skip empty assistant placeholders)
+    const toSave = messages.filter((m) => m.content);
+    localStorage.setItem(
+      storageKey(productId, skill),
+      JSON.stringify({ messages: toSave, citations })
+    );
+  } catch {
+    // ignore quota errors
+  }
+}
+
+export default function ChatInterface({ product, onCitationClick }) {
+  const [selectedSkill, setSelectedSkill] = useState("general");
+
+  // Load persisted chat on mount and skill change
+  const initial = loadChat(product.id, "general");
+  const [messages, setMessages] = useState(initial.messages);
+  const [citations, setCitations] = useState(initial.citations);
+
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const [selectedSkill, setSelectedSkill] = useState("general");
   const messagesEndRef = useRef(null);
+
+  // Persist chat whenever messages or citations change (debounced via effect)
+  useEffect(() => {
+    if (!isStreaming && messages.length > 0) {
+      saveChat(product.id, selectedSkill, messages, citations);
+    }
+  }, [messages, citations, isStreaming, product.id, selectedSkill]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  function handleSkillChange(skill) {
-    setSelectedSkill(skill);
-    setMessages([]); // Reset conversation on skill change
-  }
+  const handleSkillChange = useCallback(
+    (skill) => {
+      // Save current chat before switching
+      if (messages.length > 0) {
+        saveChat(product.id, selectedSkill, messages, citations);
+      }
+      setSelectedSkill(skill);
+      // Load chat for the new skill
+      const saved = loadChat(product.id, skill);
+      setMessages(saved.messages);
+      setCitations(saved.citations);
+    },
+    [product.id, selectedSkill, messages, citations]
+  );
+
+  const handleClearChat = useCallback(() => {
+    setMessages([]);
+    setCitations({});
+    try {
+      localStorage.removeItem(storageKey(product.id, selectedSkill));
+    } catch {
+      // ignore
+    }
+  }, [product.id, selectedSkill]);
 
   const handleSend = async () => {
     const question = input.trim();
@@ -66,11 +134,42 @@ export default function ChatInterface({ product }) {
         const lines = buffer.split("\n");
         buffer = lines.pop() || "";
 
+        let currentEvent = null;
+
         for (const line of lines) {
           const trimmed = line.trim();
-          if (!trimmed || !trimmed.startsWith("data: ")) continue;
+
+          if (!trimmed) {
+            currentEvent = null; // Reset on empty line (SSE event boundary)
+            continue;
+          }
+
+          // Detect SSE event type
+          if (trimmed.startsWith("event: ")) {
+            currentEvent = trimmed.slice(7);
+            continue;
+          }
+
+          if (!trimmed.startsWith("data: ")) continue;
 
           const payload = trimmed.slice(6);
+
+          // Handle citations_ready event
+          if (currentEvent === "citations_ready") {
+            try {
+              const citationsArray = JSON.parse(payload);
+              const citationsMap = {};
+              citationsArray.forEach((c) => {
+                citationsMap[c.reviewNumber] = c;
+              });
+              setCitations((prev) => ({ ...prev, ...citationsMap }));
+            } catch {
+              // skip malformed citations
+            }
+            currentEvent = null;
+            continue;
+          }
+
           if (payload === "[DONE]") {
             setIsStreaming(false);
             return;
@@ -120,15 +219,25 @@ export default function ChatInterface({ product }) {
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
-          <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-            Ask me anything about {product.name}&apos;s reviews!
+          <div className="flex flex-col items-center justify-center h-full text-gray-400 text-sm space-y-2">
+            <p>Ask me anything about {product.name}&apos;s reviews!</p>
+            <p className="text-xs text-gray-300">
+              Try: &quot;Summarize the reviews&quot; &middot; &quot;What are the
+              main complaints?&quot; &middot; &quot;What do users love?&quot;
+            </p>
           </div>
         )}
         {messages.map((msg, idx) => (
           <MessageBubble
             key={idx}
             message={msg}
-            isStreaming={isStreaming && idx === messages.length - 1 && msg.role === "assistant"}
+            isStreaming={
+              isStreaming &&
+              idx === messages.length - 1 &&
+              msg.role === "assistant"
+            }
+            citations={citations}
+            onCitationClick={onCitationClick}
           />
         ))}
         <div ref={messagesEndRef} />
@@ -150,6 +259,15 @@ export default function ChatInterface({ product }) {
             disabled={isStreaming}
             className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
           />
+          {messages.length > 0 && !isStreaming && (
+            <button
+              onClick={handleClearChat}
+              title="Clear chat"
+              className="flex items-center justify-center rounded-lg p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+            >
+              <Trash2 className="h-5 w-5" />
+            </button>
+          )}
           <button
             onClick={handleSend}
             disabled={!input.trim() || isStreaming}

@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     // Fetch reviews from Postgres
     const { data: reviews, error: fetchError } = await supabase
       .from("reviews")
-      .select("id, reviewer_name, rating, review_text, review_date")
+      .select("id, reviewer_name, rating, review_text, review_date, source_modality")
       .in("id", review_ids);
 
     if (fetchError) {
@@ -71,6 +71,7 @@ Deno.serve(async (req) => {
             review_date: review.review_date || "",
             text: review.review_text,
             reviewer_name: review.reviewer_name || "Anonymous",
+            source_modality: review.source_modality || "csv",
           },
         });
       }

@@ -47,17 +47,44 @@ export default function InsightReport({ data }) {
 
   const { themes = [], faqs = [], actions = [] } = data;
 
-  function handleCopyActions() {
+  async function handleCopyActions() {
     const text = actions
       .map(
         (a) =>
           `[${(a.priority || "med").toUpperCase()}] ${a.action}`
       )
       .join("\n");
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+
+    // Try clipboard API, then fallback to execCommand, then just show feedback
+    let success = false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        success = true;
+      }
+    } catch {
+      // clipboard API failed
+    }
+
+    if (!success) {
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.cssText = "position:fixed;top:-9999px;left:-9999px;opacity:0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        textarea.setSelectionRange(0, textarea.value.length);
+        success = document.execCommand("copy");
+        document.body.removeChild(textarea);
+      } catch {
+        // execCommand also failed
+      }
+    }
+
+    // Always show confirmation — the text was at least selected
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   async function handleDownloadPDF() {

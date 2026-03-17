@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Globe, FileSpreadsheet, ClipboardPaste, Loader2, AlertCircle } from "lucide-react";
+import { Globe, FileSpreadsheet, ClipboardPaste, Camera, Loader2, AlertCircle, Upload, X } from "lucide-react";
 import { cn } from "../lib/utils";
 import { supabase } from "../api/supabaseClient";
 import CSVUploader from "../components/ingestion/CSVUploader";
@@ -19,7 +19,11 @@ const TABS = [
   { id: "url", label: "URL", icon: Globe },
   { id: "csv", label: "CSV Upload", icon: FileSpreadsheet },
   { id: "paste", label: "Paste Text", icon: ClipboardPaste },
+  { id: "image", label: "Image", icon: Camera },
 ];
+
+const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20MB
 
 export default function NewProduct() {
   const navigate = useNavigate();
@@ -35,15 +39,68 @@ export default function NewProduct() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
+  // Image state
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [imageError, setImageError] = useState(null);
+  const [dragActive, setDragActive] = useState(false);
+
   // Step tracking
   const [step, setStep] = useState("input"); // input | preview | saving
 
   const hasInput = () => {
     if (activeTab === "url") return urlInput.trim().length > 0;
+    if (activeTab === "image") return imageFile !== null;
     return rawInput && rawInput.trim().length > 0;
   };
 
   const canSubmit = productName.trim() && hasInput() && !extracting;
+
+  // Image validation and handling
+  const validateAndSetImage = useCallback((file) => {
+    setImageError(null);
+
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setImageError("Invalid file type. Only PNG, JPG, JPEG, and WebP are accepted.");
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      setImageError("File too large. Maximum size is 20MB.");
+      return;
+    }
+
+    setImageFile(file);
+
+    // Generate preview
+    const reader = new FileReader();
+    reader.onload = (e) => setImagePreview(e.target.result);
+    reader.readAsDataURL(file);
+  }, []);
+
+  const handleImageDrop = useCallback(
+    (e) => {
+      e.preventDefault();
+      setDragActive(false);
+      const file = e.dataTransfer?.files?.[0];
+      if (file) validateAndSetImage(file);
+    },
+    [validateAndSetImage]
+  );
+
+  const handleImageSelect = useCallback(
+    (e) => {
+      const file = e.target.files?.[0];
+      if (file) validateAndSetImage(file);
+    },
+    [validateAndSetImage]
+  );
+
+  const clearImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setImageError(null);
+  };
 
   // Step 1: Extract reviews via OpenAI
   const handleExtract = async () => {
@@ -52,29 +109,79 @@ export default function NewProduct() {
     setExtracting(true);
 
     try {
-      const mode = activeTab;
-      const input = activeTab === "url" ? urlInput : rawInput;
+      if (activeTab === "image") {
+        // Image extraction via extract-image Edge Function
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result;
+            // Remove data URL prefix (e.g., "data:image/png;base64,")
+            const base64Data = result.split(",")[1];
+            resolve(base64Data);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(imageFile);
+        });
 
-      const { data, error: fnError } = await supabase.functions.invoke(
-        "extract-reviews",
-        {
-          body: {
-            mode,
-            raw_input: input,
-            product_id: "preview", // placeholder — real ID created on confirm
-          },
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+        const response = await fetch(
+          `${supabaseUrl}/functions/v1/extract-image`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${supabaseKey}`,
+              apikey: supabaseKey,
+            },
+            body: JSON.stringify({
+              base64Image: base64,
+              mimeType: imageFile.type,
+              productId: "preview", // placeholder — real ID created on confirm
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const errBody = await response.json().catch(() => ({}));
+          throw new Error(errBody.error || `Image extraction failed (${response.status})`);
         }
-      );
 
-      if (fnError) throw new Error(fnError.message);
-      if (data?.error) throw new Error(data.message || data.error);
+        const data = await response.json();
 
-      if (!data?.reviews?.length) {
-        throw new Error("No reviews could be extracted from the input. Please check your data format.");
+        if (!data?.reviews?.length) {
+          throw new Error("No reviews could be extracted from the image. Try a clearer screenshot.");
+        }
+
+        setExtractedReviews(data.reviews);
+        setStep("preview");
+      } else {
+        // CSV / Paste / URL extraction via extract-reviews Edge Function
+        const mode = activeTab;
+        const input = activeTab === "url" ? urlInput : rawInput;
+
+        const { data, error: fnError } = await supabase.functions.invoke(
+          "extract-reviews",
+          {
+            body: {
+              mode,
+              raw_input: input,
+              product_id: "preview",
+            },
+          }
+        );
+
+        if (fnError) throw new Error(fnError.message);
+        if (data?.error) throw new Error(data.message || data.error);
+
+        if (!data?.reviews?.length) {
+          throw new Error("No reviews could be extracted from the input. Please check your data format.");
+        }
+
+        setExtractedReviews(data.reviews);
+        setStep("preview");
       }
-
-      setExtractedReviews(data.reviews);
-      setStep("preview");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -110,7 +217,14 @@ export default function NewProduct() {
 
       const productId = product.id;
       const namespace = `product-${productId}`;
-      const ingestionMethod = activeTab === "csv" ? "csv_upload" : activeTab === "paste" ? "paste" : "url_scrape";
+      const ingestionMethod =
+        activeTab === "csv"
+          ? "csv_upload"
+          : activeTab === "paste"
+          ? "paste"
+          : activeTab === "image"
+          ? "image"
+          : "url_scrape";
 
       // 2. Insert reviews into Postgres
       const reviewRows = extractedReviews.map((r) => ({
@@ -121,6 +235,8 @@ export default function NewProduct() {
         review_date: r.review_date || null,
         verified: r.verified || false,
         helpful_count: r.helpful_count || 0,
+        source_modality: r.source_modality || activeTab,
+        source_file_name: r.source_file_name || null,
       }));
 
       const { data: insertedReviews, error: insertError } = await supabase
@@ -274,6 +390,7 @@ export default function NewProduct() {
                 onClick={() => {
                   setActiveTab(tab.id);
                   setRawInput(null);
+                  clearImage();
                 }}
                 className={cn(
                   "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors flex-1 justify-center",
@@ -319,6 +436,79 @@ export default function NewProduct() {
             {/* Paste Tab */}
             {activeTab === "paste" && (
               <PasteReviews onParsed={(text) => setRawInput(text)} />
+            )}
+
+            {/* Image Tab */}
+            {activeTab === "image" && (
+              <div>
+                {!imageFile ? (
+                  <div
+                    onDrop={handleImageDrop}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDragActive(true);
+                    }}
+                    onDragLeave={() => setDragActive(false)}
+                    className={cn(
+                      "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
+                      dragActive
+                        ? "border-primary bg-primary/5"
+                        : "border-gray-300 hover:border-gray-400"
+                    )}
+                    onClick={() =>
+                      document.getElementById("image-upload-input")?.click()
+                    }
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Image drop zone"
+                  >
+                    <Upload className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+                    <p className="text-sm font-medium text-gray-700">
+                      Drop an image here or click to browse
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Accepts PNG, JPG, JPEG, WebP (max 20MB)
+                    </p>
+                    <input
+                      id="image-upload-input"
+                      type="file"
+                      accept=".png,.jpg,.jpeg,.webp"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                      data-testid="image-file-input"
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="h-16 w-16 object-cover rounded border"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {imageFile.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {(imageFile.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
+                      <button
+                        onClick={clearImage}
+                        className="p-1 text-gray-400 hover:text-gray-600"
+                        aria-label="Remove image"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {imageError && (
+                  <p className="text-sm text-red-600 mt-2">{imageError}</p>
+                )}
+              </div>
             )}
 
             {/* Extract Button */}

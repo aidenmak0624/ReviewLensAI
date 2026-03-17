@@ -17,6 +17,7 @@ describe("ChatInterface — Skill Integration", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     // Mock fetch to return a simple stream
     fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: true,

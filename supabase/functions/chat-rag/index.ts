@@ -74,6 +74,7 @@ Deno.serve(async (req) => {
       const meta = match.metadata || {};
       return {
         index: idx + 1,
+        id: match.id,
         reviewer: meta.reviewer_name || "Anonymous",
         rating: meta.rating || "N/A",
         text: meta.review_text || meta.text || "",
@@ -81,6 +82,31 @@ Deno.serve(async (req) => {
         score: match.score?.toFixed(3) || "N/A",
       };
     });
+
+    // ── Fetch full review records for citations ──────────────────────
+    // Pinecone IDs are formatted as "review-{uuid}" — strip the prefix for Supabase lookup
+    const reviewIds = retrievedReviews
+      .map((r) => r.id?.replace(/^review-/, "") || "")
+      .filter(Boolean);
+    let citationReviews: Array<Record<string, unknown>> = [];
+    if (reviewIds.length > 0) {
+      const { data: fullReviews } = await supabase
+        .from("reviews")
+        .select(
+          "id, reviewer_name, rating, review_text, review_date, verified, helpful_count, source_modality, source_file_name"
+        )
+        .in("id", reviewIds);
+
+      if (fullReviews) {
+        citationReviews = retrievedReviews
+          .map((r) => {
+            const rawId = r.id?.replace(/^review-/, "");
+            const full = fullReviews.find((fr: any) => fr.id === rawId);
+            return full ? { reviewNumber: r.index, ...full } : null;
+          })
+          .filter(Boolean) as Array<Record<string, unknown>>;
+      }
+    }
 
     // Build context block for the system prompt
     const contextBlock = retrievedReviews.length > 0
@@ -99,20 +125,23 @@ Deno.serve(async (req) => {
         ? `\n\nACTIVE ANALYSIS SKILL: ${SKILL_PROMPTS[skill].label}\n${SKILL_PROMPTS[skill].prompt}\n`
         : "";
 
-    const systemPrompt = `You are ReviewLens AI, an expert review analyst. You ONLY answer questions about ${productName}'s ${platform} reviews.
+    const systemPrompt = `You are ReviewLens AI, an expert review analyst for ${productName}'s ${platform} reviews.
 
 STRICT RULES — follow these without exception:
 1. ONLY use information from the retrieved reviews below. Never use world knowledge, training data, or assumptions.
 2. ALWAYS cite specific reviews using [Review N] notation when making claims. Every factual statement must have at least one citation.
-3. If the user asks about other platforms, competitors, or topics outside the ingested review data, respond EXACTLY with: "I can only answer questions about ${productName}'s ${platform} reviews. That information is not available in the ingested review data."
-4. If no relevant reviews were retrieved, say: "I couldn't find relevant reviews to answer that question. Try rephrasing or asking about a different aspect of ${productName}."
-5. Be concise, analytical, and helpful. Summarize patterns, highlight key themes, and provide actionable insights when possible.
+3. If the user asks about other platforms, competitors, or topics COMPLETELY outside customer reviews (weather, news, coding, etc.), respond EXACTLY with: "I can only answer questions about ${productName}'s ${platform} reviews. That information is not available in the ingested review data."
+4. Be concise, analytical, and helpful. Summarize patterns, highlight key themes, and provide actionable insights when possible.
 
-DECLINE these topics (use the exact decline script from rule 3):
+IMPORTANT — Handling broad or vague queries:
+- If the user sends a short, vague, or broad message (like "anything", "hi", "tell me", "reviews", "summary"), treat it as a request for a general overview. Provide a helpful summary of the key themes, sentiments, and notable points from the retrieved reviews.
+- NEVER say "I couldn't find relevant reviews" when reviews ARE provided below. The reviews below are ALWAYS relevant — they are the closest matches from the full review database.
+- For any query that could reasonably relate to customer feedback, product experience, or user opinions — answer it using the reviews below.
+
+ONLY DECLINE these specific topics (use the decline script from rule 3):
 - Questions about other review platforms (e.g., "What do Amazon reviews say?")
-- Competitor comparisons (e.g., "How does this compare to [competitor]?")
-- General knowledge (weather, news, coding help, etc.)
-- Any topic not directly answerable from the retrieved reviews
+- General knowledge completely unrelated to product reviews (weather, news, coding help, math, etc.)
+- Questions about competitors not mentioned in the reviews
 ${skillDirective}
 ───── RETRIEVED REVIEWS (${retrievedReviews.length} of ${product.total_reviews || 0} total) ─────
 ${contextBlock}
@@ -156,6 +185,14 @@ ${contextBlock}
                 encoder.encode(`data: ${JSON.stringify({ token: content })}\n\n`)
               );
             }
+          }
+          // Emit full citation data for the frontend EvidenceDrawer
+          if (citationReviews.length > 0) {
+            controller.enqueue(
+              encoder.encode(
+                `event: citations_ready\ndata: ${JSON.stringify(citationReviews)}\n\n`
+              )
+            );
           }
           // Signal completion
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));

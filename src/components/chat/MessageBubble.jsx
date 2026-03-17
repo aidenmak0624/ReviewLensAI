@@ -4,18 +4,29 @@ import { cn } from "../../lib/utils";
 /**
  * Splits content string on [Review N] patterns, returning an array of
  * plain-text strings and citation badge elements.
+ * When citations data is available, badges become clickable buttons.
  */
-function renderContentWithCitations(content) {
+function renderContentWithCitations(content, citations, onCitationClick) {
   const parts = content.split(/(\[Review \d+\])/g);
   return parts.map((part, i) => {
-    if (/^\[Review \d+\]$/.test(part)) {
+    const match = part.match(/^\[Review (\d+)\]$/);
+    if (match) {
+      const reviewNum = parseInt(match[1], 10);
+      const citation = citations?.[reviewNum];
       return (
-        <span
+        <button
           key={i}
-          className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 mx-0.5 align-baseline"
+          onClick={() => citation && onCitationClick?.(citation)}
+          className={cn(
+            "inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 mx-0.5 align-baseline",
+            citation
+              ? "cursor-pointer hover:bg-blue-200 hover:scale-105 transition-all"
+              : "cursor-default"
+          )}
+          type="button"
         >
           {part}
-        </span>
+        </button>
       );
     }
     return <span key={i}>{part}</span>;
@@ -40,9 +51,14 @@ function TypingIndicator() {
 /**
  * MessageBubble — renders a single chat message.
  *
- * @param {{ message: { role: "user"|"assistant", content: string }, isStreaming: boolean }} props
+ * @param {{ message: { role: "user"|"assistant", content: string }, isStreaming: boolean, citations: object, onCitationClick: function }} props
  */
-export default function MessageBubble({ message, isStreaming = false }) {
+export default function MessageBubble({
+  message,
+  isStreaming = false,
+  citations = {},
+  onCitationClick,
+}) {
   const isUser = message.role === "user";
 
   return (
@@ -73,7 +89,7 @@ export default function MessageBubble({ message, isStreaming = false }) {
         ) : isUser ? (
           message.content
         ) : (
-          renderContentWithCitations(message.content)
+          renderContentWithCitations(message.content, citations, onCitationClick)
         )}
       </div>
 

@@ -57,7 +57,7 @@ export default function Nav() {
           {/* Desktop CTA */}
           <div className="hidden md:block">
             <a
-              href="#pricing"
+              href="https://review-lens-ai-five.vercel.app/"
               className="inline-block rounded-lg bg-teal px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal/90"
             >
               Start Free Trial
@@ -102,7 +102,7 @@ export default function Nav() {
           ))}
 
           <a
-            href="#pricing"
+            href="https://review-lens-ai-five.vercel.app/"
             onClick={() => setMobileOpen(false)}
             className="mt-4 inline-block rounded-lg bg-teal px-8 py-3 text-lg font-semibold text-white transition hover:bg-teal/90"
           >

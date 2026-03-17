@@ -9,6 +9,7 @@ interface Tier {
   period: string;
   features: string[];
   cta: string;
+  href: string;
   highlighted?: boolean;
   ctaStyle: string;
 }
@@ -25,6 +26,7 @@ const tiers: Tier[] = [
       "AI chat",
     ],
     cta: "Start Free Trial",
+    href: "https://review-lens-ai-five.vercel.app/",
     ctaStyle:
       "border border-teal text-teal hover:bg-teal/5 transition-colors",
   },
@@ -39,6 +41,7 @@ const tiers: Tier[] = [
       "Skill selector",
     ],
     cta: "Start Free Trial",
+    href: "https://review-lens-ai-five.vercel.app/",
     ctaStyle:
       "border border-teal text-teal hover:bg-teal/5 transition-colors",
   },
@@ -53,6 +56,7 @@ const tiers: Tier[] = [
       "5 Insight Reports/mo",
     ],
     cta: "Start Free Trial",
+    href: "https://review-lens-ai-five.vercel.app/",
     highlighted: true,
     ctaStyle:
       "bg-teal text-white hover:bg-teal/90 transition-colors text-base py-3",
@@ -69,6 +73,7 @@ const tiers: Tier[] = [
       "Priority support",
     ],
     cta: "Contact Sales",
+    href: "https://review-lens-ai-five.vercel.app/",
     ctaStyle:
       "bg-navy text-white hover:bg-navy/90 transition-colors",
   },
@@ -137,11 +142,12 @@ export default function Pricing() {
                 ))}
               </ul>
 
-              <button
-                className={`mt-8 w-full rounded-lg px-6 py-2.5 text-sm font-semibold ${tier.ctaStyle}`}
+              <a
+                href={tier.href}
+                className={`mt-8 block w-full rounded-lg px-6 py-2.5 text-center text-sm font-semibold ${tier.ctaStyle}`}
               >
                 {tier.cta}
-              </button>
+              </a>
             </motion.div>
           ))}
         </div>

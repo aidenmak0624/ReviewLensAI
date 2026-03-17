@@ -63,17 +63,17 @@ export default function Hero() {
               className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start mb-2"
             >
               <a
-                href="#pricing"
+                href="https://review-lens-ai-five.vercel.app/"
                 className="inline-block rounded-lg bg-teal px-8 py-4 text-lg font-semibold text-white transition hover:bg-teal/90"
               >
                 Start 14-Day Free Trial
               </a>
               <a
-                href="#demo"
+                href="https://review-lens-ai-five.vercel.app/"
                 className="inline-flex items-center gap-2 rounded-lg border border-white/30 px-6 py-3 text-white transition hover:bg-white/10"
               >
                 <Play size={18} />
-                Watch 90-Second Demo
+                Try the App
               </a>
             </motion.div>
 

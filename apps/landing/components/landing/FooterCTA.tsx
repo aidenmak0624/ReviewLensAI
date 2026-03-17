@@ -20,9 +20,12 @@ export default function FooterCTA() {
           No credit card required. Up and running in 60 seconds.
         </p>
 
-        <button className="mt-8 rounded-lg bg-white px-8 py-4 text-lg font-semibold text-teal transition hover:bg-gray-100">
+        <a
+          href="https://review-lens-ai-five.vercel.app/"
+          className="mt-8 inline-block rounded-lg bg-white px-8 py-4 text-lg font-semibold text-teal transition hover:bg-gray-100"
+        >
           Create Free Account
-        </button>
+        </a>
 
         <p className="mt-8 text-sm text-gray-400">
           Privacy Policy &middot; Terms of Service &middot; docs.reviewlens.ai

@@ -61,21 +61,23 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Validate product exists
-    const { data: product, error: productError } = await supabase
-      .from("products")
-      .select("id, name")
-      .eq("id", productId)
-      .single();
+    // Validate product exists (skip for preview extraction before product creation)
+    if (productId !== "preview") {
+      const { data: product, error: productError } = await supabase
+        .from("products")
+        .select("id, name")
+        .eq("id", productId)
+        .single();
 
-    if (productError || !product) {
-      return new Response(
-        JSON.stringify({ error: "Product not found" }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      if (productError || !product) {
+        return new Response(
+          JSON.stringify({ error: "Product not found" }),
+          {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
     }
 
     // ── Upload original image to Supabase Storage ──────────────────

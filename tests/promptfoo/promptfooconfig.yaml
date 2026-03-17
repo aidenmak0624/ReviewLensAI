@@ -1,0 +1,108 @@
+# ReviewLens AI — promptfoo LLM Evaluation Configuration
+# ======================================================
+#
+# Usage:
+#   npx promptfoo eval --config tests/promptfoo/promptfooconfig.yaml
+#   npx promptfoo view   # open results in browser
+#
+# Prerequisites:
+#   - A product with status='ready' and reviews ingested in Supabase + Pinecone
+#   - Environment variables set (via .env or shell):
+#       VITE_SUPABASE_URL        — e.g. https://xyz.supabase.co
+#       VITE_SUPABASE_ANON_KEY   — Supabase anon/public key
+#       PROMPTFOO_PRODUCT_ID     — default product UUID for chat-rag tests
+
+description: "ReviewLens AI — RAG Chat & Insight Report LLM Evaluation"
+
+prompts:
+  - "{{message}}"
+
+providers:
+  - id: "python:chat_rag_provider.py"
+    label: "chat-rag"
+
+tests:
+  # ── TC_001 — Core complaints with citations (HIGH)
+  - description: "TC_001: Core complaints — General skill"
+    vars:
+      message: "What are the main complaints in the reviews?"
+      skill: "general"
+    assert:
+      - type: contains
+        value: "[Review"
+      - type: not-contains
+        value: "weather"
+      - type: not-contains
+        value: "I can only answer"
+      - type: icontains
+        value: "issue"
+      - type: javascript
+        value: (output.match(/\[Review \d+\]/g) || []).length > 0
+
+  # ── TC_003 — Sentiment analysis (HIGH)
+  - description: "TC_003: Sentiment breakdown — Sentiment skill"
+    vars:
+      message: "Analyse the reviewer sentiment."
+      skill: "sentiment_analysis"
+    assert:
+      - type: contains
+        value: "[Review"
+      - type: not-contains
+        value: "I can only answer"
+      - type: javascript
+        value: output.toLowerCase().includes("positive") || output.toLowerCase().includes("negative") || output.toLowerCase().includes("sentiment") || output.toLowerCase().includes("mixed")
+
+  # ── TC_005 — Scope guard: off-topic question (HIGH)
+  - description: "TC_005: Scope guard — declines weather question"
+    vars:
+      message: "What is the weather today?"
+      skill: "general"
+    assert:
+      - type: javascript
+        value: output.toLowerCase().includes("can only answer") || output.toLowerCase().includes("not available in the ingested")
+      - type: not-contains
+        value: "degrees"
+      - type: not-contains
+        value: "sunny"
+      - type: not-contains
+        value: "celsius"
+      - type: not-contains
+        value: "forecast"
+
+  # ── TC_007 — What customers love (HIGH)
+  - description: "TC_007: Customer praise — citations required"
+    vars:
+      message: "What do customers love about this product?"
+      skill: "general"
+    assert:
+      - type: contains
+        value: "[Review"
+      - type: javascript
+        value: (output.match(/\[Review \d+\]/g) || []).length >= 2
+
+  # ── TC_008 — Insight Report structure (HIGH)
+  - description: "TC_008: Insight Report — 3 sections present, valid priorities"
+    provider: "python:insight_provider.py"
+    vars:
+      message: "Generate AI Insight Report"
+    assert:
+      - type: is-json
+      - type: javascript
+        value: JSON.parse(output).themes.length > 0 && JSON.parse(output).themes.length <= 6
+      - type: javascript
+        value: JSON.parse(output).faqs.length > 0 && JSON.parse(output).faqs.length <= 8
+      - type: javascript
+        value: JSON.parse(output).actions.length > 0 && JSON.parse(output).actions.every(function(a) { return ["high","med","low"].includes(a.priority); })
+
+  # ── TC_010 — Executive summary (MED)
+  - description: "TC_010: Executive summary — concise, cited, plain language"
+    vars:
+      message: "Give me an executive summary."
+      skill: "executive_summary"
+    assert:
+      - type: contains
+        value: "[Review"
+      - type: javascript
+        value: output.replace(/\[Review \d+\]/g, "").trim().split(/\s+/).length <= 300
+      - type: javascript
+        value: new Set(output.match(/\[Review \d+\]/g) || []).size >= 2

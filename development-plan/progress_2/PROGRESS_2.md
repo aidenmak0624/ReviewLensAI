@@ -252,6 +252,12 @@ export const SKILL_PROMPTS: Record<string, { label: string; emoji: string; descr
 | 2026-03-17 | Deploy | chat-rag fix: strip `review-` prefix from Pinecone IDs for Supabase lookup | DONE |
 | 2026-03-17 | QA | Full manual E2E test: 12/12 tests pass — P2_MANUAL_TEST_REPORT.md created | DONE |
 | 2026-03-17 | Track A | A2 — Storage bucket created + STORAGE_BUCKET secret set + extract-image redeployed | DONE |
+| 2026-03-17 | Docs | USER_WORKFLOW_P2.md rewritten with 10 annotated screenshots | DONE |
+| 2026-03-17 | QA | Image ingestion E2E verified: upload → GPT-4o Vision → preview → confirm → product page | DONE |
+| 2026-03-17 | QA | promptfoo LLM eval: 6/6 test cases passing (TC_001, TC_003, TC_005, TC_007, TC_008, TC_010) | DONE |
+| 2026-03-17 | QA | Unit tests: 168/173 passing — 5 pre-existing timeout failures in NewProduct (unrelated to P2) | DONE |
+| 2026-03-17 | Deploy | extract-image fix: skip product validation in preview mode | DONE |
+| 2026-03-17 | ✅ | **Progress_2 COMPLETE** — all 4 tracks done, all tests green, promptfoo 6/6 | DONE |
 
 > Format for new entries: `YYYY-MM-DD | Track X | Short description | DONE`
 

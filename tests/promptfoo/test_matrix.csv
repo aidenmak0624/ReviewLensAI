@@ -1,0 +1,7 @@
+test_id,description,priority,modality,skill,message,expected_behavior
+TC_001,Core shipping complaints — General skill,HIGH,"CSV (500 rows, Shopify)",general,"What are the core complaints about shipping?","Isolates shipping complaints. Cites [Review N]. Does not mix in unrelated praise."
+TC_003,Sentiment breakdown — Sentiment skill,HIGH,"Paste (5 reviews, mixed sentiment)",sentiment_analysis,"Analyse the reviewer sentiment.","Returns Aggressive/Frustrated/Neutral/Satisfied/Evangelist breakdown. No made-up names."
+TC_005,Scope guard — declines weather question,HIGH,CSV (any product),general,"What is the weather today?","AI declines. States it can only answer about ingested reviews. No weather info given."
+TC_007,Sarcasm detection — no false positives,HIGH,CSV with sarcastic reviews,general,"What do customers love about this product?","Sarcasm classified as negative. No false positives."
+TC_008,Insight Report — 3 sections with valid priorities,HIGH,"Any (5+ reviews, status=ready)",—,"Generate AI Insight Report","All 3 sections present. Action priorities valid. No hallucinated review IDs."
+TC_010,Executive summary — concise and cited,MED,CSV (any product),executive_summary,"Give me an executive summary.","Max 200 words. Plain language. 3 key insights cited. No jargon."

@@ -31,6 +31,52 @@ const mockProduct = {
   created_at: "2026-03-16T00:00:00Z",
 };
 
+const mockReviews = [
+  {
+    id: "r1",
+    product_id: "test-uuid",
+    reviewer_name: "Alice",
+    rating: 5,
+    review_text: "Great product!",
+    review_date: "2026-03-15",
+    verified: true,
+    helpful_count: 3,
+  },
+];
+
+function setupMock(productData, reviewsData = mockReviews) {
+  supabase.from.mockImplementation((table) => {
+    if (table === "products") {
+      return {
+        select: () => ({
+          eq: () => ({
+            single: () =>
+              Promise.resolve({ data: productData, error: null }),
+          }),
+        }),
+      };
+    }
+    if (table === "reviews") {
+      return {
+        select: () => ({
+          eq: () => ({
+            order: () =>
+              Promise.resolve({ data: reviewsData, error: null }),
+          }),
+        }),
+      };
+    }
+    return {
+      select: () => ({
+        eq: () => ({
+          single: () => Promise.resolve({ data: null, error: null }),
+        }),
+        order: () => Promise.resolve({ data: [], error: null }),
+      }),
+    };
+  });
+}
+
 describe("Product", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -41,6 +87,7 @@ describe("Product", () => {
       select: () => ({
         eq: () => ({
           single: () => new Promise(() => {}),
+          order: () => new Promise(() => {}),
         }),
       }),
     });
@@ -50,13 +97,7 @@ describe("Product", () => {
   });
 
   it("shows product not found when product does not exist", async () => {
-    supabase.from.mockReturnValue({
-      select: () => ({
-        eq: () => ({
-          single: () => Promise.resolve({ data: null, error: null }),
-        }),
-      }),
-    });
+    setupMock(null, []);
     renderProduct();
     await waitFor(() => {
       expect(screen.getByText("Product not found.")).toBeInTheDocument();
@@ -64,13 +105,7 @@ describe("Product", () => {
   });
 
   it("renders product name as heading", async () => {
-    supabase.from.mockReturnValue({
-      select: () => ({
-        eq: () => ({
-          single: () => Promise.resolve({ data: mockProduct, error: null }),
-        }),
-      }),
-    });
+    setupMock(mockProduct);
     renderProduct();
     await waitFor(() => {
       expect(screen.getByText("Notion")).toBeInTheDocument();
@@ -78,13 +113,7 @@ describe("Product", () => {
   });
 
   it("shows platform and review count in subtitle", async () => {
-    supabase.from.mockReturnValue({
-      select: () => ({
-        eq: () => ({
-          single: () => Promise.resolve({ data: mockProduct, error: null }),
-        }),
-      }),
-    });
+    setupMock(mockProduct);
     renderProduct();
     await waitFor(() => {
       expect(screen.getByText(/G2/)).toBeInTheDocument();
@@ -94,13 +123,7 @@ describe("Product", () => {
   });
 
   it("renders all three tabs (Summary, Reviews, Chat)", async () => {
-    supabase.from.mockReturnValue({
-      select: () => ({
-        eq: () => ({
-          single: () => Promise.resolve({ data: mockProduct, error: null }),
-        }),
-      }),
-    });
+    setupMock(mockProduct);
     renderProduct();
     await waitFor(() => {
       expect(screen.getByText("Summary")).toBeInTheDocument();
@@ -109,62 +132,38 @@ describe("Product", () => {
     });
   });
 
-  it("defaults to Summary tab", async () => {
-    supabase.from.mockReturnValue({
-      select: () => ({
-        eq: () => ({
-          single: () => Promise.resolve({ data: mockProduct, error: null }),
-        }),
-      }),
-    });
+  it("defaults to Summary tab with IngestionSummary", async () => {
+    setupMock(mockProduct);
     renderProduct();
     await waitFor(() => {
-      expect(
-        screen.getByText(/ingestion summary will appear/i)
-      ).toBeInTheDocument();
+      expect(screen.getByText("Ingestion Summary")).toBeInTheDocument();
     });
   });
 
   it("switches to Reviews tab", async () => {
-    supabase.from.mockReturnValue({
-      select: () => ({
-        eq: () => ({
-          single: () => Promise.resolve({ data: mockProduct, error: null }),
-        }),
-      }),
-    });
+    setupMock(mockProduct);
     renderProduct();
     await waitFor(() => screen.getByText("Reviews"));
     fireEvent.click(screen.getByText("Reviews"));
-    expect(
-      screen.getByText(/review table will appear/i)
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/search reviews/i)).toBeInTheDocument();
+    });
   });
 
   it("switches to Chat tab", async () => {
-    supabase.from.mockReturnValue({
-      select: () => ({
-        eq: () => ({
-          single: () => Promise.resolve({ data: mockProduct, error: null }),
-        }),
-      }),
-    });
+    setupMock(mockProduct);
     renderProduct();
     await waitFor(() => screen.getByText("Chat"));
     fireEvent.click(screen.getByText("Chat"));
-    expect(
-      screen.getByText(/chat interface will appear/i)
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByPlaceholderText(/ask about reviews/i)
+      ).toBeInTheDocument();
+    });
   });
 
   it("has a back to dashboard link", async () => {
-    supabase.from.mockReturnValue({
-      select: () => ({
-        eq: () => ({
-          single: () => Promise.resolve({ data: mockProduct, error: null }),
-        }),
-      }),
-    });
+    setupMock(mockProduct);
     renderProduct();
     await waitFor(() => {
       const backLink = screen.getByText(/back to dashboard/i);

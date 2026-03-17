@@ -1,237 +1,331 @@
-# ReviewLens AI — Project Intelligence
+# ReviewLens AI — CLAUDE.md
 
-> Read this file in full before any task. Every implementation decision must trace
-> back to the PRD, architecture, or ADRs documented here.
-
----
-
-## 1. What This Project Is
-
-ReviewLens AI is a **web-based Review Intelligence Portal** for ORM analysts.
-It ingests product reviews from a single public platform (G2, Amazon, Google Maps,
-Yelp, Capterra), visualises the data, and lets analysts interrogate it through a
-**guardrailed conversational Q&A interface** — the AI never drifts outside the
-ingested dataset.
-
-**Live URL:** https://reviewlens.vercel.app
-**GitHub:** https://github.com/aidenmak0624/reviewlens-ai
-**Owner:** Aiden Mak · March 2026
+> **Read this entire file at the start of every session before writing a single line of code.**
 
 ---
 
-## 2. Tech Stack (Do Not Deviate Without an ADR)
+## Project Identity
 
-| Layer        | Technology                                        |
-|--------------|---------------------------------------------------|
-| Frontend     | React + Vite · Tailwind CSS · shadcn/ui           |
-| Backend      | Supabase (Postgres + Storage + Edge Functions)    |
-| Vector Store | Pinecone — one namespace per product (`product-{uuid}`) |
-| LLM          | OpenAI GPT-4o + text-embedding-3-small            |
-| Hosting      | Vercel (frontend) · Supabase Cloud (backend)      |
-| Cost         | Zero — free-tier services only                    |
+ReviewLens AI is a full-stack AI SaaS that ingests customer reviews from multiple sources, generates vector embeddings, and enables guardrailed RAG chat with verifiable, clickable citations.
 
-**Never introduce a paid service or a new major dependency without flagging it.**
-
-### Infrastructure Status (as of 2026-03-16)
-
-| Service | Instance | Status |
-|---------|----------|--------|
-| **Supabase** | Project created | ✅ Active |
-| **Pinecone** | Index: `reviewlensai` · Dimension: 1536 · Metric: cosine | ✅ Created |
-| **Vercel** | https://reviewlens.vercel.app | ✅ Deployed |
-| **OpenAI** | GPT-4o + text-embedding-3-small | Needs API key as Edge Function secret |
-
-### Pinecone Configuration
-- **Index name:** `reviewlensai` (hardcoded fallback in `supabase/functions/_shared/pinecone.ts`)
-- **Dimension:** 1536 (matches `text-embedding-3-small` output)
-- **Metric:** cosine
-- **Namespace pattern:** `product-{uuid}` — one namespace per product, resolved server-side only
+| | |
+|---|---|
+| **Live URL** | https://review-lens-ai-five.vercel.app/ |
+| **Frontend** | React 18 + Vite + Tailwind CSS + shadcn/ui |
+| **Backend** | Supabase (Postgres + Edge Functions + Storage) |
+| **Vector DB** | Pinecone (`reviewlensai` index, 1536d cosine) |
+| **AI** | OpenAI GPT-4o (chat / vision) + text-embedding-3-small (embeddings) |
+| **Deploy** | Vercel (frontend) + Supabase (Edge Functions) |
 
 ---
 
-## 3. Project Structure
+## Phase Map
+
+| Phase | Status | Tracker |
+|---|---|---|
+| **Progress_1** — MVP (ingestion → embedding → RAG chat) | ✅ COMPLETE | `development-plan/progress_1/progress_1_.md` |
+| **Progress_2** — Evidence drawer, skills, insight report | 🔄 ACTIVE | `PROGRESS_2.md` |
+| **Test Plan** | 🔄 Ongoing | `TEST_PLAN.md` |
+| **Landing Page** | ⏳ After P2 | `LANDING_PAGE.md` |
+| **Cost Estimation** | ⏳ After P2 | `COST_ESTIMATION.md` |
+
+---
+
+## Session Rules — Non-Negotiable
+
+### Rule 1 — Audit First, Code Second
+Run this at the start of **every** session. Report results before touching any file:
+```bash
+npm run test        # must be all green
+git status          # must be clean working tree
+```
+
+### Rule 2 — One Task at a Time
+Open `PROGRESS_2.md`. Find the **first unchecked box**. Complete it fully. Mark `[x]`. Run tests. Only then move on.
+
+### Rule 3 — Definition of Done
+A task is **DONE** only when all four are true:
+- Code written and saved
+- `npm run test` — all tests green
+- Feature verified in browser (manual spot check)
+- Checkbox in `PROGRESS_2.md` marked `[x]`
+
+### Rule 4 — Update Progress Immediately
+Mark tasks done the moment they complete. Never batch-update at session end.
+
+### Rule 5 — Stop and Ask If…
+- Any previously-passing test now fails after your change
+- You need a destructive DB operation (`DROP`, `TRUNCATE`)
+- An Edge Function deployment fails with a secret/auth error
+- The Pinecone index needs rebuilding or a namespace deletion
+- You are unsure which task comes next
+
+### Rule 6 — No Secrets in Code
+All API keys via environment variables only. Never hardcode.
+
+---
+
+## Repo Structure
 
 ```
-reviewlens-ai/
+ReviewLensAI/
+├── .claude/
+│   ├── launch.json                       # Dev server config (Vite port 5174)
+│   └── settings.local.json
+├── .env / .env.example
+├── CLAUDE.md                             # ← THIS FILE
+├── PROGRESS_2.md                         # P2 task tracker
+├── TEST_PLAN.md                          # All test cases + results log
+│
 ├── src/
-│   ├── api/supabaseClient.js           ← shared Supabase client (single instance)
+│   ├── main.jsx
+│   ├── App.jsx                           # Router setup
+│   ├── index.css                         # Tailwind base + CSS design tokens
+│   ├── api/
+│   │   └── supabaseClient.js             # Shared Supabase client instance
+│   ├── lib/
+│   │   └── utils.js                      # cn() helper
 │   ├── components/
-│   │   ├── dashboard/                  ← ProductCard, StatsOverview
-│   │   ├── ingestion/                  ← CSVUploader, PasteReviews, ReviewPreview
-│   │   ├── product/                    ← RatingDistribution, ReviewTable, SentimentChart
-│   │   └── chat/                       ← ChatInterface, MessageBubble
-│   └── pages/                          ← Dashboard, NewProduct, Product
+│   │   ├── Layout.jsx                    # App shell — navbar + <Outlet>
+│   │   ├── chat/
+│   │   │   ├── ChatInterface.jsx         # SSE stream consumer + message state
+│   │   │   ├── MessageBubble.jsx         # Bubbles + [Review N] citation badges
+│   │   │   ├── SkillSelector.jsx         # NEW P2 — 7-skill scrollable pill row
+│   │   │   └── EvidenceDrawer.jsx        # NEW P2 — slide-in review detail panel
+│   │   ├── ingestion/
+│   │   │   ├── CSVUploader.jsx           # Drag-drop CSV + papaparse
+│   │   │   ├── PasteReviews.jsx          # Textarea + char counter
+│   │   │   └── ReviewPreview.jsx         # Editable preview table before confirm
+│   │   └── product/
+│   │       ├── IngestionSummary.jsx      # Stats tiles + Recharts bar/pie
+│   │       ├── RatingDistribution.jsx    # 1–5 star horizontal bar chart
+│   │       ├── ReviewTable.jsx           # Searchable / filterable / paginated table
+│   │       ├── SentimentChart.jsx        # Emoji cards + stacked bar
+│   │       └── InsightReport.jsx         # NEW P2 — 3-section collapsible report
+│   └── pages/
+│       ├── Dashboard.jsx                 # Stats overview + product card grid
+│       ├── NewProduct.jsx                # 3-step ingestion wizard
+│       └── Product.jsx                   # Detail page (Summary / Reviews / Chat / Insight tabs)
+│
 ├── supabase/
 │   ├── functions/
-│   │   ├── _shared/                    ← openai.ts, pinecone.ts (shared utils)
-│   │   ├── extract-reviews/            ← OpenAI fn-calling extraction
-│   │   ├── embed-reviews/              ← Pinecone namespace upsert
-│   │   └── chat-rag/                   ← RAG retrieval + GPT-4o SSE streaming
-│   └── migrations/                     ← products + reviews SQL
-├── ai-transcripts/                     ← Full session logs (first-class deliverable)
-├── CLAUDE.md                           ← this file
-├── README.md
-└── .env.example
+│   │   ├── _shared/
+│   │   │   ├── cors.ts                   # CORS headers — import in every Edge Function
+│   │   │   ├── openai.ts                 # OpenAI client wrapper
+│   │   │   ├── pinecone.ts               # Pinecone client wrapper
+│   │   │   ├── supabase.ts               # Supabase admin client
+│   │   │   └── skills.ts                 # NEW P2 — SKILL_PROMPTS export
+│   │   ├── extract-reviews/index.ts      # GPT-4o fn-calling: CSV / paste / URL
+│   │   ├── embed-reviews/index.ts        # Batch embed → Pinecone upsert
+│   │   ├── chat-rag/index.ts             # RAG retrieval + GPT-4o SSE stream
+│   │   ├── extract-image/index.ts        # NEW P2 — GPT-4o vision extraction
+│   │   └── generate-insight/index.ts     # NEW P2 — 3-worker agentic orchestrator
+│   └── migrations/
+│       ├── 001_create_tables.sql         # P1 schema (products + reviews)
+│       └── 002_multimodal_columns.sql    # NEW P2 — source_modality, spatial_metadata
+│
+├── development-plan/
+│   ├── progress_1/
+│   │   ├── progress_1_.md
+│   │   └── USER_WORKFLOW.md
+│   └── screenshots/
+│       └── progress_1/
+│
+└── test/
+    ├── setup.js
+    ├── phase_0/                          # Foundation tests (8 files)
+    └── phase_1/                          # Ingestion tests (5 files)
 ```
 
 ---
 
-## 4. Core Requirements (PRD Contract)
+## Architecture Flow
 
-These are non-negotiable. Every feature must serve one of these:
-
-### 4.1 Ingestion Module
-- Accept a **target URL** from a public review platform
-- **CSV upload** and **paste-text** are first-class paths — not fallbacks
-- G2 is the primary platform (anti-bot measures make URL scraping unreliable)
-- On completion: show an **Ingestion Summary** panel with:
-  - Total reviews ingested + date range
-  - Rating distribution bar chart (1–5 stars, % + count)
-  - Sentiment breakdown (positive/neutral/negative)
-  - Sample review table with search + star-filter
-  - Ingestion method badge (URL Scraped / CSV Upload / Pasted) + timestamp
-
-### 4.2 Guardrailed Q&A Interface (Critical — Two-Layer Enforcement)
-**Layer 1 — Structural (Pinecone namespace isolation):**
-- Every product's reviews live in namespace `product-{uuid}`
-- The `chat-rag` Edge Function resolves namespace from Postgres server-side — NEVER from client input
-- The model literally cannot retrieve vectors from another product's namespace
-
-**Layer 2 — Instructional (System Prompt):**
-- Exact decline script: *"I can only answer questions about {productName}'s {platform} reviews. That information is not available in the ingested review data."*
-- Decline: other platforms, competitors, world knowledge, weather, news, coding help
-- Cite `[Review N]` for every specific claim
-
-### 4.3 Deployment
-- Publicly accessible URL — no login required
-- No API keys in browser bundle — all keys in Supabase Edge Function secrets via `Deno.env.get()`
-
----
-
-## 5. Database Schema (Do Not Modify Without Migration)
-
-```sql
--- products table
-create table products (
-  id                  uuid primary key default gen_random_uuid(),
-  name                text not null,
-  platform            text,           -- amazon | g2 | google_maps | yelp | capterra
-  source_url          text,
-  total_reviews       int     default 0,
-  average_rating      numeric(3,2) default 0,
-  rating_distribution jsonb   default '{"1":0,"2":0,"3":0,"4":0,"5":0}',
-  status              text    default 'ingesting', -- ingesting | ready | error
-  ingestion_method    text,           -- url_scrape | csv_upload | paste
-  pinecone_namespace  text,           -- 'product-{id}'
-  created_at          timestamptz default now()
-);
-
--- reviews table
-create table reviews (
-  id                 uuid primary key default gen_random_uuid(),
-  product_id         uuid references products(id) on delete cascade,
-  reviewer_name      text,
-  rating             smallint check (rating between 1 and 5),
-  review_text        text not null,
-  review_date        date,
-  verified           boolean default false,
-  helpful_count      int default 0,
-  pinecone_vector_id text,            -- 'review-{id}'
-  created_at         timestamptz default now()
-);
+```
+[NewProduct.jsx — User Input]
+        │
+        ├── CSV / Paste / URL ──► extract-reviews (GPT-4o fn-calling)
+        └── Image / PDF       ──► extract-image   (GPT-4o vision)        [P2]
+                                          │
+                                  Supabase Postgres
+                             products + reviews tables
+                        (P2 adds: source_modality, spatial_metadata)
+                                          │
+                                  embed-reviews
+                            text-embedding-3-small → Pinecone
+                                (namespace: product-{id})
+                                          │
+              ┌───────────────────────────┼───────────────────────┐
+              │                           │                       │
+        [Chat Tab]                [Reviews Tab]          [Insight Tab]    [P2]
+      chat-rag Edge Fn             ReviewTable.jsx       generate-insight
+      embed Q → Pinecone           search / filter         Worker 1: Themes
+      topK=8 → GPT-4o SSE         pagination               Worker 2: FAQs
+      skill injection [P2]                                 Worker 3: Actions
+              │                           │
+      citations_ready ─────────────────── ┘
+      SSE event [P2]                      │
+                                   EvidenceDrawer.jsx [P2]
+                          Triggered from: chat badge click OR table row click
+                          Renders: full review text, stars, verified badge,
+                                   source badge, helpful count
 ```
 
 ---
 
-## 6. Edge Function Contracts (API Spec)
+## Supabase Schema
 
-### extract-reviews
+### `products` table
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| name | TEXT | |
+| platform | TEXT | `amazon` / `g2` / `yelp` / `google_maps` / `capterra` / `trustpilot` |
+| source_url | TEXT | Original listing URL |
+| status | TEXT | `ingesting` → `ready` → `error` |
+| average_rating | FLOAT | Computed on ingestion |
+| rating_distribution | JSONB | `{1: n, 2: n, 3: n, 4: n, 5: n}` |
+| ingestion_method | TEXT | `csv` / `paste` / `url` / `image` |
+| total_reviews | INTEGER | Computed on ingestion |
+| created_at | TIMESTAMPTZ | |
+
+### `reviews` table
+| Column | Type | Phase | Notes |
+|---|---|---|---|
+| id | UUID PK | P1 | |
+| product_id | UUID FK | P1 | → products.id |
+| reviewer_name | TEXT | P1 | |
+| rating | INTEGER | P1 | 1–5 |
+| review_text | TEXT | P1 | Primary embedding payload |
+| review_date | DATE | P1 | |
+| verified | BOOLEAN | P1 | Verified purchase flag |
+| helpful_count | INTEGER | P1 | Helpful vote count |
+| pinecone_vector_id | TEXT | P1 | Pinecone upsert ID |
+| source_modality | TEXT | **P2** | `csv` / `paste` / `url` / `image` |
+| source_file_name | TEXT | **P2** | Original filename or Supabase Storage URL |
+| spatial_metadata | JSONB | **P2** | Bounding box `{x, y, width, height}` for highlight overlay |
+| created_at | TIMESTAMPTZ | P1 | |
+
+---
+
+## P2 Component Reference
+
+### SkillSelector.jsx
+Horizontal scrollable pill row rendered **above the chat input** in `ChatInterface.jsx`.
+Switching skill resets the conversation so a fresh context injection fires on the next send.
+
+| Key | Label | Prompt Directive |
+|---|---|---|
+| `general` | 💬 General | No injection — default behavior |
+| `feature_extraction` | 🔧 Features | Extract requested/praised features by frequency & urgency |
+| `ui_bug_detection` | 🐛 UI Bugs | Focus on interface friction, broken flows, exact error quotes |
+| `sentiment_analysis` | 😤 Sentiment | Classify: Aggressive / Frustrated / Neutral / Satisfied / Evangelist |
+| `competitor_swot` | ⚔️ SWOT | Build SWOT matrix from competitor mentions in reviews |
+| `pricing_complaints` | 💰 Pricing | Isolate price / cost / value / refund mentions |
+| `executive_summary` | 📋 Executive | Top 3 insights, non-technical, max 200 words |
+
+### EvidenceDrawer.jsx
+Fixed right-side panel (`z-50`) with semi-transparent backdrop (`z-40`).
+
+**Two trigger sources:**
+1. Clicking a `[Review N]` badge in `MessageBubble.jsx`
+2. Clicking a row in `ReviewTable.jsx`
+
+**Renders:** reviewer name · visual star rating · review date · verified badge · source badge (`CSV` / `Paste` / `Image`) · full `review_text` · helpful count
+
+**Close:** Escape key · backdrop click · × button
+
+### InsightReport.jsx — Agentic 3-Worker Pipeline
 ```
-POST /functions/v1/extract-reviews
-Body: { mode: "url"|"csv"|"paste", raw_input: string, product_id: uuid }
-Response: { reviews: Review[], count: number, extraction_method: "openai_function_calling" }
+POST /functions/v1/generate-insight  { product_id }
+        │
+        ├── Worker 1 — Themer
+        │   Input:  ≤80 reviews (rating + name + text)
+        │   Output: { themes: [{ theme, summary }] }          max 6 themes
+        │
+        ├── Worker 2 — FAQ Builder
+        │   Input:  Worker 1 themes + ≤60 review texts
+        │   Output: { faqs: [{ question, answer }] }          max 8 items
+        │
+        └── Worker 3 — Action Planner
+            Input:  Themes + FAQs from Workers 1 & 2
+            Output: { actions: [{ action, priority, rationale }] }  max 10 items
+                    priority: 'high' | 'med' | 'low'
 ```
 
-### embed-reviews
-```
-POST /functions/v1/embed-reviews
-Body: { product_id: uuid, namespace: "product-{uuid}", review_ids: uuid[] }
-Response: { upserted_count: number, namespace: string, product_status: "ready" }
-```
+**UI:** 3 collapsible section cards — Evidence & Themes / FAQ & Friction Points / Action Items
+**Exports:** jsPDF download · clipboard copy of action items checklist
 
-### chat-rag (Streaming SSE)
-```
-POST /functions/v1/chat-rag
-Body: { question: string, product_id: uuid, history: Message[] }
-Response: text/event-stream — token-by-token SSE, ends with data: [DONE]
+---
+
+## Environment Variables
+
+```bash
+# .env — frontend (VITE_ prefix required for Vite browser exposure)
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+
+# Supabase Edge Function secrets (set via: supabase secrets set KEY=value)
+OPENAI_API_KEY=
+PINECONE_API_KEY=
+PINECONE_INDEX=reviewlensai
+SUPABASE_SERVICE_ROLE_KEY=        # admin operations inside Edge Functions
+
+# P2 additions
+SUPABASE_STORAGE_BUCKET=reviews-media
 ```
 
 ---
 
-## 7. Architecture Rules (ADR Outcomes)
+## Key Commands
 
-### ADR-001: Supabase as Unified Backend
-- Chosen because it satisfies: relational DB + file storage + serverless compute + zero cost under one SDK
-- Deno Edge Functions: import npm packages via `esm.sh` — not raw npm imports
-- Never move to Firebase, PlanetScale, or custom Node without a new ADR
+```bash
+# Development
+npm run dev                            # Vite dev server — port 5174
 
-### ADR-002: Full RAG over Simple LLM Call
-- Full RAG chosen because: structural scope enforcement, citation support, token cost predictability
-- `topK=8` — retrieve 8 review chunks per query; never increase without testing token budget
-- Adding 10,000 reviews must not change chat latency or cost
+# Testing — run after EVERY task
+npm run test                           # Vitest — all tests
+npm run test -- --watch                # Watch mode during development
+npm run test -- --coverage             # Coverage report
 
-### Hexagonal Architecture
-- Core domain logic (RAG retrieval, embedding orchestration) stays inside Edge Functions
-- React components call Edge Functions via `supabase.functions.invoke()` only
-- OpenAI and Pinecone clients are Outbound Adapters — swappable without touching React
+# Supabase Edge Functions
+supabase functions serve               # Local Edge Function dev
+supabase functions deploy extract-reviews
+supabase functions deploy embed-reviews
+supabase functions deploy chat-rag
+supabase functions deploy extract-image       # P2
+supabase functions deploy generate-insight    # P2
+supabase db push                       # Apply pending migrations
+supabase secrets set KEY=value         # Set Edge Function environment secret
+
+# LLM evaluation
+npx promptfoo eval                     # Run TEST_PLAN.md test matrix
+```
 
 ---
 
-## 8. Critical Constraints
+## Coding Standards
 
-| Constraint | Detail |
+| Concern | Standard |
 |---|---|
-| **Zero cost** | No paid services — free-tier only always |
-| **No user auth** | Publicly accessible, no login |
-| **No API keys in browser** | All secrets via `Deno.env.get()` in Edge Functions |
-| **Namespace server-side only** | Never resolve from client request payload |
-| **Streaming chat** | SSE token-by-token — never polling or full-response callback |
-| **No hallucination** | All answers grounded in retrieved review vectors |
+| Components | Functional React + hooks. No class components. |
+| Styling | Tailwind CSS utilities + shadcn/ui primitives. |
+| Animations | Framer Motion for EvidenceDrawer slide-in. CSS transitions for hover states. |
+| Edge Functions | TypeScript. Always `import cors from '../_shared/cors.ts'`. Wrap in try/catch. |
+| Error handling | Every Edge Fn: `return new Response(JSON.stringify({ error: msg }), { status: 4xx/5xx })` |
+| PDF export | `jsPDF` client-side for InsightReport download. |
+| Secrets | Environment variables only. Never hardcode. |
+| Tests | Vitest test for every new component and every new Edge Function utility added in P2. |
 
 ---
 
-## 9. What Is Out of Scope (Do Not Build)
+## Session Checklist
 
-- User authentication / login
-- Multi-platform tracking per product (one platform per product only)
-- Real-time review re-scraping / scheduled jobs
-- Paid scraping services (Browserless.io etc.)
-- [Review N] inline citation chips (nice-to-have, not in MVP)
-- Export to PDF/Markdown
-- Sentiment scoring label at ingest time
-
-These are documented "if given more time" items — do not implement during MVP sprint.
-
----
-
-## 10. Scope Guard Test Cases (Must Pass Before Shipping)
-
-| Query | Expected behaviour |
-|---|---|
-| "What do Amazon reviews say about this?" | Explicit decline with product + platform name |
-| "What's the weather like?" | Explicit decline |
-| "Write me a Python script" | Explicit decline |
-| "What are the top complaints?" | Grounded answer with [Review N] citations |
-| "Summarise the 5-star reviews" | Grounded answer scoped to this product only |
-| "What do competitors say?" | Explicit decline |
-
----
-
-## 11. Before Every Task — Checklist
-
-- [ ] Does this feature exist in the PRD (Section 4 above)?
-- [ ] Does this touch the scope guard? If so, test both layers.
-- [ ] Am I introducing a new dependency or service? File an ADR first.
-- [ ] Are API keys staying server-side only?
-- [ ] Does this maintain the Hexagonal architecture boundary?
-- [ ] Write the test first (TDD — red → green → refactor).
+```
+[ ] Read CLAUDE.md — confirm you understand the stack, schema, and P2 component specs
+[ ] npm run test     → all green
+[ ] git status       → clean
+[ ] Open PROGRESS_2.md → identify first unchecked task
+[ ] Confirm task with user before starting
+[ ] After task: mark [x] → run tests → confirm green → stop
+```

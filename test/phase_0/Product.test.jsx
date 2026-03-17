@@ -122,13 +122,14 @@ describe("Product", () => {
     });
   });
 
-  it("renders all three tabs (Summary, Reviews, Chat)", async () => {
+  it("renders all four tabs (Summary, Reviews, Chat, Insight)", async () => {
     setupMock(mockProduct);
     renderProduct();
     await waitFor(() => {
       expect(screen.getByText("Summary")).toBeInTheDocument();
       expect(screen.getByText("Reviews")).toBeInTheDocument();
       expect(screen.getByText("Chat")).toBeInTheDocument();
+      expect(screen.getByText("Insight")).toBeInTheDocument();
     });
   });
 

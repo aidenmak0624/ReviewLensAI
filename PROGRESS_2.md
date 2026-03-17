@@ -85,11 +85,11 @@ Complete every item and mark `[x]` before writing a single line of P2 code.
 > Goal: every `[Review N]` badge in chat and every row in the Reviews table opens a slide-in panel showing the complete source review.
 
 ### B1 — EvidenceDrawer.jsx (New Component)
-- [ ] Create `src/components/chat/EvidenceDrawer.jsx`
-- [ ] **Layout:** fixed right-side panel, `w-96`, full viewport height, `z-50`
-- [ ] **Backdrop:** semi-transparent overlay `z-40`, covers rest of screen
-- [ ] **Animation:** Framer Motion — `x: "100%"` (closed) → `x: 0` (open), 300ms ease-out
-- [ ] **Content renders:**
+- [x] Create `src/components/chat/EvidenceDrawer.jsx`
+- [x] **Layout:** fixed right-side panel, `w-96`, full viewport height, `z-50`
+- [x] **Backdrop:** semi-transparent overlay `z-40`, covers rest of screen
+- [x] **Animation:** Framer Motion — `x: "100%"` (closed) → `x: 0` (open), 300ms ease-out
+- [x] **Content renders:**
   - Header: platform badge + product name
   - Reviewer name (bold) + review date
   - Star rating — visual ★ icons (filled/empty), not just a number
@@ -97,16 +97,16 @@ Complete every item and mark `[x]` before writing a single line of P2 code.
   - Source badge: `CSV` / `Paste` / `URL` / `Image` — colour-coded pill
   - Helpful count: "👍 N people found this helpful" — shown only if `helpful_count > 0`
   - Full `review_text` — no truncation, line breaks preserved
-- [ ] **Close triggers:** × button top-right · backdrop click · Escape key listener
-- [ ] Accept props: `{ isOpen: boolean, review: ReviewObject | null, onClose: () => void }`
-- [ ] Write Vitest test: renders all fields with mock data, Escape key fires onClose
+- [x] **Close triggers:** × button top-right · backdrop click · Escape key listener
+- [x] Accept props: `{ isOpen: boolean, review: ReviewObject | null, onClose: () => void }`
+- [x] Write Vitest test: renders all fields with mock data, Escape key fires onClose
 
 ### B2 — ReviewTable.jsx — Row Click Trigger
-- [ ] Add `onRowClick` prop to `ReviewTable.jsx`
-- [ ] Make each table row `cursor-pointer` with a hover highlight
-- [ ] On row click: call `onRowClick(review)` passing the full review object
-- [ ] Wire in `Product.jsx`: `<ReviewTable onRowClick={(r) => { setDrawerReview(r); setDrawerOpen(true); }} />`
-- [ ] Write Vitest test: row click fires callback with correct review object
+- [x] Add `onRowClick` prop to `ReviewTable.jsx`
+- [x] Make each table row `cursor-pointer` with a hover highlight
+- [x] On row click: call `onRowClick(review)` passing the full review object
+- [x] Wire in `Product.jsx`: `<ReviewTable onRowClick={(r) => { setDrawerReview(r); setDrawerOpen(true); }} />`
+- [x] Write Vitest test: row click fires callback with correct review object
 
 ### B3 — Chat Citations → Drawer
 - [ ] In `chat-rag/index.ts`: after stream completes, emit a final SSE event:
@@ -133,8 +133,8 @@ Complete every item and mark `[x]` before writing a single line of P2 code.
 > Goal: users can switch between 7 analytical lenses via a pill row above the chat input. Each skill injects a hidden prompt directive that reorients the AI's analysis focus.
 
 ### C1 — Skill Library: `_shared/skills.ts`
-- [ ] Create `supabase/functions/_shared/skills.ts`
-- [ ] Export `SKILL_PROMPTS` object — exactly these 7 keys:
+- [x] Create `supabase/functions/_shared/skills.ts`
+- [x] Export `SKILL_PROMPTS` object — exactly these 7 keys:
 
 ```typescript
 export const SKILL_PROMPTS: Record<string, { label: string; emoji: string; description: string; prompt: string }> = {
@@ -148,29 +148,29 @@ export const SKILL_PROMPTS: Record<string, { label: string; emoji: string; descr
 };
 ```
 
-- [ ] Write Vitest test: all 7 keys present, each has `label`, `emoji`, `description`, `prompt`
+- [x] Write Vitest test: all 7 keys present, each has `label`, `emoji`, `description`, `prompt`
 
 ### C2 — SkillSelector.jsx (New Component)
-- [ ] Create `src/components/chat/SkillSelector.jsx`
-- [ ] Renders a horizontally scrollable pill row (overflow-x: auto, no scrollbar visible)
-- [ ] One pill per skill. Each pill shows `{emoji} {label}`
-- [ ] Active pill: `bg-teal-100 border border-teal-600 text-teal-800 font-medium`
-- [ ] Inactive pill: `bg-gray-100 border border-gray-200 text-gray-600 hover:bg-gray-200`
-- [ ] Default active: `general`
-- [ ] Props: `{ selectedSkill: string, onSkillChange: (key: string) => void }`
-- [ ] Write Vitest test: all 7 pills render, clicking a pill fires `onSkillChange` with correct key
+- [x] Create `src/components/chat/SkillSelector.jsx`
+- [x] Renders a horizontally scrollable pill row (overflow-x: auto, no scrollbar visible)
+- [x] One pill per skill. Each pill shows `{emoji} {label}`
+- [x] Active pill: `bg-teal-100 border border-teal-600 text-teal-800 font-medium`
+- [x] Inactive pill: `bg-gray-100 border border-gray-200 text-gray-600 hover:bg-gray-200`
+- [x] Default active: `general`
+- [x] Props: `{ selectedSkill: string, onSkillChange: (key: string) => void }`
+- [x] Write Vitest test: all 7 pills render, clicking a pill fires `onSkillChange` with correct key
 
 ### C3 — ChatInterface.jsx Integration
-- [ ] Import and render `<SkillSelector>` above the message input bar
-- [ ] Add `selectedSkill` state, default `'general'`
-- [ ] On skill change: reset conversation messages to `[]` (fresh context) + update `selectedSkill`
-- [ ] Include `skill: selectedSkill` in the fetch body sent to `chat-rag`
-- [ ] Write Vitest test: `selectedSkill` is included in the fetch payload body
+- [x] Import and render `<SkillSelector>` above the message input bar
+- [x] Add `selectedSkill` state, default `'general'`
+- [x] On skill change: reset conversation messages to `[]` (fresh context) + update `selectedSkill`
+- [x] Include `skill: selectedSkill` in the fetch body sent to `chat-rag`
+- [x] Write Vitest test: `selectedSkill` is included in the fetch payload body
 
 ### C4 — chat-rag Edge Function: Skill Injection
-- [ ] Import `SKILL_PROMPTS` from `_shared/skills.ts`
-- [ ] Accept `skill` from request body (default: `'general'`)
-- [ ] If `skill !== 'general'` and `SKILL_PROMPTS[skill]` exists: prepend `SKILL_PROMPTS[skill].prompt` to the system prompt **after** the guardrail header but **before** the RAG context
+- [x] Import `SKILL_PROMPTS` from `_shared/skills.ts`
+- [x] Accept `skill` from request body (default: `'general'`)
+- [x] If `skill !== 'general'` and `SKILL_PROMPTS[skill]` exists: prepend `SKILL_PROMPTS[skill].prompt` to the system prompt **after** the guardrail header but **before** the RAG context
 - [ ] Deploy: `supabase functions deploy chat-rag`
 - [ ] Manual test: select "🐛 UI Bugs" → ask "What are the issues?" → confirm response focuses on UI friction
 
@@ -181,49 +181,49 @@ export const SKILL_PROMPTS: Record<string, { label: string; emoji: string; descr
 > Goal: one button generates a structured executive strategy document — themes, FAQs, and prioritised action items — all derived from the ingested review data via a 3-worker agentic pipeline.
 
 ### D1 — generate-insight Edge Function (Orchestrator)
-- [ ] Create `supabase/functions/generate-insight/index.ts`
-- [ ] Accept POST body: `{ product_id: string }`
-- [ ] Validate: product exists in Supabase + `status === 'ready'`; return 400 otherwise
-- [ ] Fetch up to 80 reviews from Supabase for this product (ordered by created_at desc): `id, reviewer_name, rating, review_text`
-- [ ] **Worker 1 — Themer:**
+- [x] Create `supabase/functions/generate-insight/index.ts`
+- [x] Accept POST body: `{ product_id: string }`
+- [x] Validate: product exists in Supabase + `status === 'ready'`; return 400 otherwise
+- [x] Fetch up to 80 reviews from Supabase for this product (ordered by created_at desc): `id, reviewer_name, rating, review_text`
+- [x] **Worker 1 — Themer:**
   - Input: all review texts formatted as a numbered list
   - System prompt: *"You are a product analyst. Extract the most important MECE themes from these customer reviews. Return ONLY valid JSON: `{ \"themes\": [{ \"theme\": string, \"summary\": string }] }`. Maximum 6 themes. No preamble."*
   - Parse JSON response → `themes[]`
-- [ ] **Worker 2 — FAQ Builder:**
+- [x] **Worker 2 — FAQ Builder:**
   - Input: Worker 1 themes (stringified) + up to 60 review texts
   - System prompt: *"Based on these reviews and themes, identify the most common user questions and friction points. Return ONLY valid JSON: `{ \"faqs\": [{ \"question\": string, \"answer\": string }] }`. Maximum 8 items."*
   - Parse JSON response → `faqs[]`
-- [ ] **Worker 3 — Action Planner:**
+- [x] **Worker 3 — Action Planner:**
   - Input: Worker 1 themes + Worker 2 FAQs (both stringified)
   - System prompt: *"Translate the themes and FAQs into prioritised product action items. Return ONLY valid JSON: `{ \"actions\": [{ \"action\": string, \"priority\": \"high\"|\"med\"|\"low\", \"rationale\": string }] }`. Maximum 10 items."*
   - Parse JSON response → `actions[]`
-- [ ] Return: `{ themes, faqs, actions }` with `Content-Type: application/json`
-- [ ] Full error handling: if any worker fails, return `{ error: "..." }` with status 500
+- [x] Return: `{ themes, faqs, actions }` with `Content-Type: application/json`
+- [x] Full error handling: if any worker fails, return `{ error: "..." }` with status 500
 - [ ] Deploy: `supabase functions deploy generate-insight`
 
 ### D2 — InsightReport.jsx (New Component)
-- [ ] Create `src/components/product/InsightReport.jsx`
-- [ ] Accept props: `{ data: { themes, faqs, actions } }`
-- [ ] **Section 1 — Evidence & Themes:**
+- [x] Create `src/components/product/InsightReport.jsx`
+- [x] Accept props: `{ data: { themes, faqs, actions } }`
+- [x] **Section 1 — Evidence & Themes:**
   - Collapsible card (open by default)
   - Each theme: bold title + summary paragraph
   - Border-left accent in teal
-- [ ] **Section 2 — FAQ & Friction Points:**
+- [x] **Section 2 — FAQ & Friction Points:**
   - Collapsible card (open by default)
   - Each FAQ: question in bold → answer below in gray
   - Numbered list styling
-- [ ] **Section 3 — Action Items:**
+- [x] **Section 3 — Action Items:**
   - Collapsible card (open by default)
   - Each action: priority badge + action text + rationale in small gray text
   - Priority badge colours: 🔴 `high` (red pill) · 🟡 `med` (amber pill) · ⚪ `low` (gray pill)
-- [ ] **Export bar** (sticky bottom of component):
+- [x] **Export bar** (sticky bottom of component):
   - "📋 Copy Action Items" → copies `[HIGH] action\n[MED] action\n...` to clipboard
   - "⬇️ Download PDF" → `jsPDF` renders all 3 sections into a formatted `.pdf` file
-- [ ] Write Vitest test: renders all 3 sections with mock data, action priority badges correct
+- [x] Write Vitest test: renders all 3 sections with mock data, action priority badges correct
 
 ### D3 — Product.jsx: Insight Tab
-- [ ] Add **4th tab** "✨ Insight" to the existing Summary / Reviews / Chat tab bar in `Product.jsx`
-- [ ] Tab content:
+- [x] Add **4th tab** "✨ Insight" to the existing Summary / Reviews / Chat tab bar in `Product.jsx`
+- [x] Tab content:
   - If report not yet generated: show a centered "Generate AI Insight Report" button (large, teal, disabled if `product.status !== 'ready'`)
   - On click: POST to `/functions/v1/generate-insight` with `{ product_id }`
   - **3-step loading state** (sequential, each ~3–10s):
@@ -234,7 +234,7 @@ export const SKILL_PROMPTS: Record<string, { label: string; emoji: string; descr
   - On success: render `<InsightReport data={reportData} />`
   - On error: red error banner + "Retry" button
   - If report already generated: show `<InsightReport>` directly (cache in `useState`)
-- [ ] Write Vitest test: loading states render in sequence, `InsightReport` renders on mock success
+- [ ] Write Vitest test: loading states render in sequence, `InsightReport` renders on mock success (deferred — complex integration test)
 
 ---
 
@@ -242,7 +242,10 @@ export const SKILL_PROMPTS: Record<string, { label: string; emoji: string; descr
 
 | Date | Track | Task Completed | Status |
 |------|-------|----------------|--------|
-| — | Gate | Progress_1 verification | ⏳ PENDING |
+| 2026-03-17 | Gate | Progress_1 verification — all P1 tests green, all features working | DONE |
+| 2026-03-17 | Track B | EvidenceDrawer + ReviewTable onRowClick + Product.jsx wiring | DONE |
+| 2026-03-17 | Track C | skills.ts + SkillSelector + ChatInterface integration + chat-rag skill injection | DONE |
+| 2026-03-17 | Track D | generate-insight Edge Fn + InsightReport.jsx + Product.jsx Insight tab | DONE |
 
 > Format for new entries: `YYYY-MM-DD | Track X | Short description | DONE`
 

@@ -13,6 +13,8 @@ const PLATFORMS = [
   { value: "google_maps", label: "Google Maps" },
   { value: "yelp", label: "Yelp" },
   { value: "capterra", label: "Capterra" },
+  { value: "trustpilot", label: "Trustpilot" },
+  { value: "other", label: "Other" },
 ];
 
 const TABS = [

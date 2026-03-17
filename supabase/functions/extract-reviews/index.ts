@@ -238,6 +238,75 @@ Deno.serve(async (req) => {
     }
 
     let reviews: any[] = [];
+    let inputText = raw_input;
+
+    // ── URL mode: fetch the page HTML first ──
+    if (mode === "url") {
+      const url = raw_input.trim();
+      if (!/^https?:\/\//i.test(url)) {
+        return new Response(
+          JSON.stringify({ error: "INVALID_URL", message: "URL must start with http:// or https://" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      console.log(`Fetching URL: ${url}`);
+      try {
+        const pageResponse = await fetch(url, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+          },
+          redirect: "follow",
+        });
+
+        if (!pageResponse.ok) {
+          return new Response(
+            JSON.stringify({
+              error: "FETCH_FAILED",
+              message: `Failed to fetch URL (HTTP ${pageResponse.status}). The site may block automated requests. Try CSV upload or paste instead.`,
+            }),
+            { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        const html = await pageResponse.text();
+
+        // Strip scripts, styles, and nav/footer noise to reduce token usage
+        const cleaned = html
+          .replace(/<script[\s\S]*?<\/script>/gi, "")
+          .replace(/<style[\s\S]*?<\/style>/gi, "")
+          .replace(/<nav[\s\S]*?<\/nav>/gi, "")
+          .replace(/<footer[\s\S]*?<\/footer>/gi, "")
+          .replace(/<header[\s\S]*?<\/header>/gi, "")
+          .replace(/<[^>]+>/g, " ")           // strip remaining HTML tags
+          .replace(/\s{2,}/g, " ")            // collapse whitespace
+          .trim();
+
+        if (cleaned.length < 50) {
+          return new Response(
+            JSON.stringify({
+              error: "EMPTY_PAGE",
+              message: "The fetched page had no meaningful text content. Reviews may be loaded dynamically. Try CSV upload or paste instead.",
+            }),
+            { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Truncate to ~60k chars to stay within GPT-4o context limits
+        inputText = cleaned.length > 60000 ? cleaned.substring(0, 60000) : cleaned;
+        console.log(`Fetched ${html.length} chars HTML → ${inputText.length} chars cleaned text`);
+      } catch (fetchErr) {
+        return new Response(
+          JSON.stringify({
+            error: "FETCH_ERROR",
+            message: `Could not reach URL: ${fetchErr.message}. Try CSV upload or paste instead.`,
+          }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     // ── Fast path: try direct CSV column mapping (no LLM needed) ──
     if (mode === "csv") {
@@ -268,12 +337,15 @@ Deno.serve(async (req) => {
           "Use the save_reviews function to return the extracted data.";
       } else {
         systemPrompt =
-          "You are a data extraction assistant. The user will provide HTML or text content from a review page. " +
-          "Extract ALL individual reviews you can identify from this content. " +
+          "You are a data extraction assistant. The user will provide text content scraped from a product review page. " +
+          "Extract ALL individual customer reviews you can identify. " +
+          "Look for patterns like: reviewer names, star ratings (often expressed as '5 stars', 'Rated 4 out of 5', etc.), " +
+          "review dates, review body text, verified purchase indicators, and helpful vote counts. " +
+          "Ignore navigation text, ads, and non-review content. " +
           "Use the save_reviews function to return the extracted data.";
       }
 
-      const chunks = chunkInput(raw_input, mode);
+      const chunks = chunkInput(inputText, mode);
       console.log(`Processing ${chunks.length} chunk(s) via LLM`);
 
       // Process chunks — sequential to avoid rate limits

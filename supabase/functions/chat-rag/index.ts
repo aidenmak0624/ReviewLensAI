@@ -14,6 +14,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 import openai from "../_shared/openai.ts";
 import { pineconeIndex } from "../_shared/pinecone.ts";
 import { supabase } from "../_shared/supabase.ts";
+import { SKILL_PROMPTS } from "../_shared/skills.ts";
 
 interface Message {
   role: "user" | "assistant";
@@ -27,7 +28,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { question, product_id, history = [] } = await req.json();
+    const { question, product_id, history = [], skill = "general" } = await req.json();
 
     if (!question || !product_id) {
       return new Response(
@@ -92,6 +93,12 @@ Deno.serve(async (req) => {
       : "No relevant reviews found for this query.";
 
     // ── Layer 2: Guardrailed system prompt ─────────────────────────────
+    // Inject skill directive if a non-general skill is selected
+    const skillDirective =
+      skill !== "general" && SKILL_PROMPTS[skill]?.prompt
+        ? `\n\nACTIVE ANALYSIS SKILL: ${SKILL_PROMPTS[skill].label}\n${SKILL_PROMPTS[skill].prompt}\n`
+        : "";
+
     const systemPrompt = `You are ReviewLens AI, an expert review analyst. You ONLY answer questions about ${productName}'s ${platform} reviews.
 
 STRICT RULES — follow these without exception:
@@ -106,7 +113,7 @@ DECLINE these topics (use the exact decline script from rule 3):
 - Competitor comparisons (e.g., "How does this compare to [competitor]?")
 - General knowledge (weather, news, coding help, etc.)
 - Any topic not directly answerable from the retrieved reviews
-
+${skillDirective}
 ───── RETRIEVED REVIEWS (${retrievedReviews.length} of ${product.total_reviews || 0} total) ─────
 ${contextBlock}
 ─────────────────────────────────────────────────────`;

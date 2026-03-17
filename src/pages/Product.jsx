@@ -7,6 +7,7 @@ import IngestionSummary from "../components/product/IngestionSummary";
 import ReviewTable from "../components/product/ReviewTable";
 import SentimentChart from "../components/product/SentimentChart";
 import ChatInterface from "../components/chat/ChatInterface";
+import EvidenceDrawer from "../components/chat/EvidenceDrawer";
 
 const TABS = [
   { id: "summary", label: "Summary", icon: FileText },
@@ -21,6 +22,8 @@ export default function Product() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("summary");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerReview, setDrawerReview] = useState(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -131,7 +134,13 @@ export default function Product() {
 
       {activeTab === "reviews" && (
         <div className="bg-white rounded-lg border border-border p-6">
-          <ReviewTable reviews={reviews} />
+          <ReviewTable
+            reviews={reviews}
+            onRowClick={(r) => {
+              setDrawerReview(r);
+              setDrawerOpen(true);
+            }}
+          />
         </div>
       )}
 
@@ -146,6 +155,16 @@ export default function Product() {
           )}
         </div>
       )}
+
+      {/* Evidence Drawer — triggered from ReviewTable row click or chat citation */}
+      <EvidenceDrawer
+        isOpen={drawerOpen}
+        review={drawerReview}
+        onClose={() => {
+          setDrawerOpen(false);
+          setDrawerReview(null);
+        }}
+      />
     </div>
   );
 }

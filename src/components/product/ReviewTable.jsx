@@ -33,7 +33,7 @@ function formatDate(dateStr) {
   return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 }
 
-export default function ReviewTable({ reviews }) {
+export default function ReviewTable({ reviews, onRowClick }) {
   const [search, setSearch] = useState("");
   const [starFilter, setStarFilter] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -184,7 +184,11 @@ export default function ReviewTable({ reviews }) {
                   return (
                     <tr
                       key={review.id ?? globalIndex}
-                      className="border-t border-border hover:bg-muted/30"
+                      className={cn(
+                        "border-t border-border hover:bg-muted/30",
+                        onRowClick && "cursor-pointer"
+                      )}
+                      onClick={() => onRowClick?.(review)}
                     >
                       <td className="px-3 py-2 text-muted-foreground">
                         {globalIndex + 1}

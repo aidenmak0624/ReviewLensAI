@@ -10,21 +10,21 @@
 Complete every item and mark `[x]` before writing a single line of P2 code.
 
 **Automated tests**
-- [ ] `npm run test` → all tests passing (test/phase_0 + test/phase_1)
+- [x] `npm run test` → all tests passing (test/phase_0 + test/phase_1) — 116/116 green
 
 **Manual browser verification** — test against https://review-lens-ai-five.vercel.app/
 
-- [ ] Dashboard (`/`) loads — stats bar + product card grid visible
-- [ ] New Product (`/new`) — all 3 tabs functional: URL / CSV / Paste
-- [ ] CSV ingest end-to-end: upload → preview → confirm → redirect to product page
-- [ ] Paste ingest end-to-end: paste text → extract → preview → confirm → redirect
-- [ ] Product Summary tab: stats tiles + rating distribution + sentiment chart render
-- [ ] Product Reviews tab: search bar, star filter pills, pagination all work
-- [ ] Product Chat tab: question → SSE stream → `[Review N]` badge rendered in response
-- [ ] Scope guard: off-topic question → AI declines with correct in-scope message
-- [ ] Vercel deployment healthy — no build errors in Vercel dashboard
+- [x] Dashboard (`/`) loads — stats bar + product card grid visible
+- [x] New Product (`/new`) — all 3 tabs functional: URL / CSV / Paste
+- [x] CSV ingest end-to-end: upload → preview → confirm → redirect to product page
+- [x] Paste ingest end-to-end: paste text → extract → preview → confirm → redirect
+- [x] Product Summary tab: stats tiles + rating distribution + sentiment chart render
+- [x] Product Reviews tab: search bar, star filter pills, pagination all work
+- [x] Product Chat tab: question → SSE stream → `[Review N]` badge rendered in response
+- [x] Scope guard: off-topic question → AI declines with correct in-scope message
+- [x] Vercel deployment healthy — no build errors in Vercel dashboard
 
-**Gate status:** ⏳ NOT VERIFIED — do not proceed until all boxes above are checked
+**Gate status:** ✅ VERIFIED 2026-03-17 — all P1 features working, proceeding to P2
 
 ---
 

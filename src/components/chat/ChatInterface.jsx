@@ -1,16 +1,23 @@
 import { useState, useRef, useEffect } from "react";
 import MessageBubble from "./MessageBubble";
+import SkillSelector from "./SkillSelector";
 import { Send, Loader2 } from "lucide-react";
 
 export default function ChatInterface({ product }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [selectedSkill, setSelectedSkill] = useState("general");
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  function handleSkillChange(skill) {
+    setSelectedSkill(skill);
+    setMessages([]); // Reset conversation on skill change
+  }
 
   const handleSend = async () => {
     const question = input.trim();
@@ -39,6 +46,7 @@ export default function ChatInterface({ product }) {
           question,
           product_id: product.id,
           history: updatedHistory,
+          skill: selectedSkill,
         }),
       });
 
@@ -126,8 +134,12 @@ export default function ChatInterface({ product }) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input area */}
-      <div className="border-t border-gray-200 p-4">
+      {/* Skill selector + Input area */}
+      <div className="border-t border-gray-200 p-4 space-y-3">
+        <SkillSelector
+          selectedSkill={selectedSkill}
+          onSkillChange={handleSkillChange}
+        />
         <div className="flex items-center gap-2">
           <input
             type="text"

@@ -405,29 +405,29 @@ Verified via 4 unit tests in `IngestionStress.test.jsx`.
 
 | File | Tests | Status |
 |---|---|---|
-| `test/phase_0/Dashboard.test.jsx` | 5 | ✅ |
-| `test/phase_0/Layout.test.jsx` | 3 | ✅ |
-| `test/phase_0/NewProduct.test.jsx` | 7 | ✅ |
-| `test/phase_0/Product.test.jsx` | 6 | ✅ |
-| `test/phase_0/CSVUploader.test.jsx` | 4 | ✅ |
-| `test/phase_0/PasteReviews.test.jsx` | 3 | ✅ |
-| `test/phase_0/ReviewPreview.test.jsx` | 5 | ✅ |
-| `test/phase_0/supabaseClient.test.js` | 2 | ✅ |
-| `test/phase_1/IngestionSummary.test.jsx` | 7 | ✅ |
-| `test/phase_1/RatingDistribution.test.jsx` | 5 | ✅ |
-| `test/phase_1/ReviewTable.test.jsx` | 7 | ✅ |
-| `test/phase_1/SentimentChart.test.jsx` | 5 | ✅ |
-| `test/phase_1/ProductTabs.test.jsx` | 6 | ✅ |
-| `test/phase_2/ChatInterface.test.jsx` | 5 | ✅ |
-| `test/phase_2/ChatCitations.test.jsx` | 2 | ✅ |
-| `test/phase_2/EvidenceDrawer.test.jsx` | 7 | ✅ |
-| `test/phase_2/ImageTab.test.jsx` | 6 | ✅ |
-| `test/phase_2/IngestionStress.test.jsx` | 10 | ✅ |
-| `test/phase_2/InsightReport.test.jsx` | 5 | ✅ |
-| `test/phase_2/MessageBubble.test.jsx` | 5 | ✅ |
-| `test/phase_2/ReviewTableClick.test.jsx` | 3 | ✅ |
-| `test/phase_2/SkillSelector.test.jsx` | 6 | ✅ |
-| `test/phase_2/skills.test.js` | 3 | ✅ |
+| `test/progress_1/Dashboard.test.jsx` | 5 | ✅ |
+| `test/progress_1/Layout.test.jsx` | 3 | ✅ |
+| `test/progress_1/NewProduct.test.jsx` | 7 | ✅ |
+| `test/progress_1/Product.test.jsx` | 6 | ✅ |
+| `test/progress_1/CSVUploader.test.jsx` | 4 | ✅ |
+| `test/progress_1/PasteReviews.test.jsx` | 3 | ✅ |
+| `test/progress_1/ReviewPreview.test.jsx` | 5 | ✅ |
+| `test/progress_1/supabaseClient.test.js` | 2 | ✅ |
+| `test/progress_1/IngestionSummary.test.jsx` | 7 | ✅ |
+| `test/progress_1/RatingDistribution.test.jsx` | 5 | ✅ |
+| `test/progress_1/ReviewTable.test.jsx` | 7 | ✅ |
+| `test/progress_1/SentimentChart.test.jsx` | 5 | ✅ |
+| `test/progress_1/ProductTabs.test.jsx` | 6 | ✅ |
+| `test/progress_2/ChatInterface.test.jsx` | 5 | ✅ |
+| `test/progress_2/ChatCitations.test.jsx` | 2 | ✅ |
+| `test/progress_2/EvidenceDrawer.test.jsx` | 7 | ✅ |
+| `test/progress_2/ImageTab.test.jsx` | 6 | ✅ |
+| `test/progress_2/IngestionStress.test.jsx` | 10 | ✅ |
+| `test/progress_2/InsightReport.test.jsx` | 5 | ✅ |
+| `test/progress_2/MessageBubble.test.jsx` | 5 | ✅ |
+| `test/progress_2/ReviewTableClick.test.jsx` | 3 | ✅ |
+| `test/progress_2/SkillSelector.test.jsx` | 6 | ✅ |
+| `test/progress_2/skills.test.js` | 3 | ✅ |
 
 **Total: 23 test files · 173 tests · All passing**
 

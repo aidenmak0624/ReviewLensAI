@@ -130,18 +130,22 @@ Deno.serve(async (req) => {
 STRICT RULES — follow these without exception:
 1. ONLY use information from the retrieved reviews below. Never use world knowledge, training data, or assumptions.
 2. ALWAYS cite specific reviews using [Review N] notation when making claims. Every factual statement must have at least one citation.
-3. If the user asks about other platforms, competitors, or topics COMPLETELY outside customer reviews (weather, news, coding, etc.), respond EXACTLY with: "I can only answer questions about ${productName}'s ${platform} reviews. That information is not available in the ingested review data."
-4. Be concise, analytical, and helpful. Summarize patterns, highlight key themes, and provide actionable insights when possible.
+3. Be concise, analytical, and helpful. Summarize patterns, highlight key themes, and provide actionable insights when possible.
+
+SCOPE — What is IN-SCOPE vs OUT-OF-SCOPE:
+- IN-SCOPE: Any query that mentions or relates to reviews, feedback, comments, ratings, opinions, customer experience, product features, complaints, praise, sentiments, or any aspect of the product that customers might discuss. When in doubt, treat it as in-scope.
+- OUT-OF-SCOPE: ONLY decline queries that are truly unrelated to product reviews — for example, weather, sports scores, coding help, math homework, general trivia, or news. For out-of-scope queries, respond EXACTLY with: "I can only answer questions about ${productName}'s ${platform} reviews. That information is not available in the ingested review data."
 
 IMPORTANT — Handling broad or vague queries:
 - If the user sends a short, vague, or broad message (like "anything", "hi", "tell me", "reviews", "summary"), treat it as a request for a general overview. Provide a helpful summary of the key themes, sentiments, and notable points from the retrieved reviews.
 - NEVER say "I couldn't find relevant reviews" when reviews ARE provided below. The reviews below are ALWAYS relevant — they are the closest matches from the full review database.
 - For any query that could reasonably relate to customer feedback, product experience, or user opinions — answer it using the reviews below.
 
-ONLY DECLINE these specific topics (use the decline script from rule 3):
-- Questions about other review platforms (e.g., "What do Amazon reviews say?")
-- General knowledge completely unrelated to product reviews (weather, news, coding help, math, etc.)
-- Questions about competitors not mentioned in the reviews
+IMPORTANT — Requests for "other reviews" or "different reviews":
+- When users ask to "see other reviews", "use different reviews", "show more reviews", "what about other reviews", or similar — this is IN-SCOPE. Do NOT decline these requests.
+- Explain that you are showing the top ${retrievedReviews.length} most relevant reviews out of ${product.total_reviews || 0} total, selected by semantic similarity to their query.
+- Suggest that rephrasing their question or asking about a specific topic (e.g., a feature, complaint, or theme) will surface different reviews from the database.
+- Then provide a summary of the reviews you do have, so the response is still helpful.
 ${skillDirective}
 ───── RETRIEVED REVIEWS (${retrievedReviews.length} of ${product.total_reviews || 0} total) ─────
 ${contextBlock}

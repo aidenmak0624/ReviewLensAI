@@ -15,12 +15,12 @@
 npm run test
 ```
 
-Expected: all tests in `test/phase_0/` and `test/phase_1/` passing.
+Expected: all tests in `test/progress_1/` and `test/progress_1/` passing.
 
 | Test Directory | Area Covered |
 |---|---|
-| `test/phase_0/` | Foundation — Supabase client, Layout, routing, env config |
-| `test/phase_1/` | Ingestion — CSVUploader, PasteReviews, ReviewPreview, extract-reviews, embed-reviews |
+| `test/progress_1/` | Foundation — Supabase client, Layout, routing, env config |
+| `test/progress_1/` | Ingestion — CSVUploader, PasteReviews, ReviewPreview, extract-reviews, embed-reviews |
 
 ### 1B — Manual E2E Checklist
 
@@ -80,9 +80,9 @@ Add each test file as the feature is built. Update status below.
 | Test Description | File | Status |
 |---|---|---|
 | Migration: `source_modality`, `source_file_name`, `spatial_metadata` columns exist | DB migration applied via `supabase db push` | ✅ PASS |
-| Image tab renders in NewProduct.jsx | `test/phase_2/ImageTab.test.jsx` | ✅ PASS |
-| Image tab rejects non-image files (e.g. .pdf, .csv) | `test/phase_2/ImageTab.test.jsx` | ✅ PASS |
-| Image tab rejects files > 20MB | `test/phase_2/ImageTab.test.jsx` | ✅ PASS |
+| Image tab renders in NewProduct.jsx | `test/progress_2/ImageTab.test.jsx` | ✅ PASS |
+| Image tab rejects non-image files (e.g. .pdf, .csv) | `test/progress_2/ImageTab.test.jsx` | ✅ PASS |
+| Image tab rejects files > 20MB | `test/progress_2/ImageTab.test.jsx` | ✅ PASS |
 | extract-image Edge Fn returns valid review array shape | Manual deploy verified | ✅ PASS |
 | embed-reviews stores `source_modality` in Pinecone metadata | Code verified + deployed | ✅ PASS |
 
@@ -90,24 +90,24 @@ Add each test file as the feature is built. Update status below.
 
 | Test Description | File | Status |
 |---|---|---|
-| EvidenceDrawer renders all fields: name, rating, date, verified, source badge, text | `test/phase_2/EvidenceDrawer.test.jsx` | ✅ PASS |
-| EvidenceDrawer Escape key fires onClose | `test/phase_2/EvidenceDrawer.test.jsx` | ✅ PASS |
-| EvidenceDrawer backdrop click fires onClose | `test/phase_2/EvidenceDrawer.test.jsx` | ✅ PASS |
-| ReviewTable row click fires onRowClick with correct review object | `test/phase_2/ReviewTable.test.jsx` | ✅ PASS |
-| citations_ready SSE event populates citations state in ChatInterface | `test/phase_2/ChatCitations.test.jsx` | ✅ PASS |
-| [Review N] badge click calls onCitationClick with correct review | `test/phase_2/MessageBubble.test.jsx` | ✅ PASS |
+| EvidenceDrawer renders all fields: name, rating, date, verified, source badge, text | `test/progress_2/EvidenceDrawer.test.jsx` | ✅ PASS |
+| EvidenceDrawer Escape key fires onClose | `test/progress_2/EvidenceDrawer.test.jsx` | ✅ PASS |
+| EvidenceDrawer backdrop click fires onClose | `test/progress_2/EvidenceDrawer.test.jsx` | ✅ PASS |
+| ReviewTable row click fires onRowClick with correct review object | `test/progress_2/ReviewTable.test.jsx` | ✅ PASS |
+| citations_ready SSE event populates citations state in ChatInterface | `test/progress_2/ChatCitations.test.jsx` | ✅ PASS |
+| [Review N] badge click calls onCitationClick with correct review | `test/progress_2/MessageBubble.test.jsx` | ✅ PASS |
 | Integration: badge click → EvidenceDrawer opens with correct data | Manual E2E verified | ✅ PASS |
 
 ### Track C — Skill Selector
 
 | Test Description | File | Status |
 |---|---|---|
-| skills.ts exports exactly 7 keys, each with label/emoji/description/prompt | `test/phase_2/skills.test.js` | ✅ PASS |
-| SkillSelector renders 7 pills | `test/phase_2/SkillSelector.test.jsx` | ✅ PASS |
-| Clicking a pill fires onSkillChange with correct key | `test/phase_2/SkillSelector.test.jsx` | ✅ PASS |
-| 'general' is active by default | `test/phase_2/SkillSelector.test.jsx` | ✅ PASS |
-| selectedSkill is included in chat-rag fetch body | `test/phase_2/ChatInterface.test.jsx` | ✅ PASS |
-| Skill change resets messages to [] | `test/phase_2/ChatInterface.test.jsx` | ✅ PASS |
+| skills.ts exports exactly 7 keys, each with label/emoji/description/prompt | `test/progress_2/skills.test.js` | ✅ PASS |
+| SkillSelector renders 7 pills | `test/progress_2/SkillSelector.test.jsx` | ✅ PASS |
+| Clicking a pill fires onSkillChange with correct key | `test/progress_2/SkillSelector.test.jsx` | ✅ PASS |
+| 'general' is active by default | `test/progress_2/SkillSelector.test.jsx` | ✅ PASS |
+| selectedSkill is included in chat-rag fetch body | `test/progress_2/ChatInterface.test.jsx` | ✅ PASS |
+| Skill change resets messages to [] | `test/progress_2/ChatInterface.test.jsx` | ✅ PASS |
 
 ### Track D — Insight Report
 
@@ -116,11 +116,11 @@ Add each test file as the feature is built. Update status below.
 | generate-insight returns `{ themes, faqs, actions }` shape (mocked workers) | Manual E2E verified | ✅ PASS |
 | generate-insight returns 400 if product not found | Code logic verified | ✅ PASS |
 | generate-insight returns 400 if product status !== 'ready' | Code logic verified | ✅ PASS |
-| InsightReport renders all 3 section cards with mock data | `test/phase_2/InsightReport.test.jsx` | ✅ PASS |
-| InsightReport: high/med/low priority badges render correct colours | `test/phase_2/InsightReport.test.jsx` | ✅ PASS |
-| InsightReport: "Copy Action Items" writes to clipboard | `test/phase_2/InsightReport.test.jsx` | ✅ PASS |
-| Product.jsx: loading steps render in sequence | `test/phase_2/Product.test.jsx` | ✅ PASS |
-| Product.jsx: InsightReport renders on mocked success response | `test/phase_2/Product.test.jsx` | ✅ PASS |
+| InsightReport renders all 3 section cards with mock data | `test/progress_2/InsightReport.test.jsx` | ✅ PASS |
+| InsightReport: high/med/low priority badges render correct colours | `test/progress_2/InsightReport.test.jsx` | ✅ PASS |
+| InsightReport: "Copy Action Items" writes to clipboard | `test/progress_2/InsightReport.test.jsx` | ✅ PASS |
+| Product.jsx: loading steps render in sequence | `test/progress_2/Product.test.jsx` | ✅ PASS |
+| Product.jsx: InsightReport renders on mocked success response | `test/progress_2/Product.test.jsx` | ✅ PASS |
 
 ---
 

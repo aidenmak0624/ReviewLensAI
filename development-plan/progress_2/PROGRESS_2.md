@@ -10,7 +10,7 @@
 Complete every item and mark `[x]` before writing a single line of P2 code.
 
 **Automated tests**
-- [x] `npm run test` → all tests passing (test/phase_0 + test/phase_1) — 116/116 green
+- [x] `npm run test` → all tests passing (test/progress_1) — 116/116 green
 
 **Manual browser verification** — test against https://review-lens-ai-five.vercel.app/
 

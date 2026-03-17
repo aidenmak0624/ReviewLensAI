@@ -24,7 +24,7 @@ ReviewLens AI is a full-stack AI SaaS that ingests customer reviews from multipl
 | Phase | Status | Tracker |
 |---|---|---|
 | **Progress_1** — MVP (ingestion → embedding → RAG chat) | ✅ COMPLETE | `development-plan/progress_1/progress_1_.md` |
-| **Progress_2** — Evidence drawer, skills, insight report | 🔄 ACTIVE | `PROGRESS_2.md` |
+| **Progress_2** — Evidence drawer, skills, insight report | 🔄 ACTIVE | `development-plan/progress_2/PROGRESS_2.md` |
 | **Test Plan** | 🔄 Ongoing | `TEST_PLAN.md` |
 | **Landing Page** | ⏳ After P2 | `LANDING_PAGE.md` |
 | **Cost Estimation** | ⏳ After P2 | `COST_ESTIMATION.md` |
@@ -74,7 +74,6 @@ ReviewLensAI/
 │   └── settings.local.json
 ├── .env / .env.example
 ├── CLAUDE.md                             # ← THIS FILE
-├── PROGRESS_2.md                         # P2 task tracker
 ├── TEST_PLAN.md                          # All test cases + results log
 │
 ├── src/
@@ -128,13 +127,19 @@ ReviewLensAI/
 │   ├── progress_1/
 │   │   ├── progress_1_.md
 │   │   └── USER_WORKFLOW.md
+│   ├── progress_2/
+│   │   ├── PROGRESS_2.md                 # P2 task tracker
+│   │   ├── P2_MANUAL_TEST_REPORT.md      # Manual test report (20/20 pass)
+│   │   └── USER_WORKFLOW_P2.md           # P2 user workflows
 │   └── screenshots/
-│       └── progress_1/
+│       ├── progress_1/
+│       └── progress_2/
 │
-└── test/
-    ├── setup.js
-    ├── phase_0/                          # Foundation tests (8 files)
-    └── phase_1/                          # Ingestion tests (5 files)
+├── test/
+│   ├── setup.js
+│   ├── fixtures/                         # Test data (large_reviews.csv, medium_reviews.csv)
+│   ├── progress_1/                       # Foundation + ingestion tests (13 files)
+│   └── progress_2/                       # P2 tests (10 files)
 ```
 
 ---

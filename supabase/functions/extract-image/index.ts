@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
     const ext = mimeType.split("/")[1] === "jpeg" ? "jpg" : mimeType.split("/")[1];
     const timestamp = Date.now();
     const storagePath = `${productId}/${timestamp}.${ext}`;
-    const bucket = Deno.env.get("SUPABASE_STORAGE_BUCKET") || "reviews-media";
+    const bucket = Deno.env.get("STORAGE_BUCKET") || "reviews-media";
 
     // Decode base64 to Uint8Array for upload
     const binaryStr = atob(base64Image);

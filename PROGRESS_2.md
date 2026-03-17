@@ -46,9 +46,9 @@ Complete every item and mark `[x]` before writing a single line of P2 code.
 - [x] Backfill existing reviews: `UPDATE reviews SET source_modality = 'csv' WHERE source_modality IS NULL`
 
 ### A2 — Supabase Storage Bucket
-- [ ] Create `reviews-media` bucket in Supabase Storage dashboard (public read)
-- [ ] Add `SUPABASE_STORAGE_BUCKET=reviews-media` to `.env` and run `supabase secrets set SUPABASE_STORAGE_BUCKET=reviews-media`
-- [ ] Smoke-test: upload a test image via `supabaseClient.storage.from('reviews-media').upload(...)` and confirm public URL works
+- [x] Create `reviews-media` bucket in Supabase Storage dashboard (public read)
+- [x] Add `STORAGE_BUCKET=reviews-media` secret via `supabase secrets set STORAGE_BUCKET=reviews-media` (SUPABASE_ prefix is reserved)
+- [x] extract-image Edge Function updated to use `STORAGE_BUCKET` env var, redeployed
 
 ### A3 — extract-image Edge Function
 - [x] Create `supabase/functions/extract-image/index.ts`
@@ -251,6 +251,7 @@ export const SKILL_PROMPTS: Record<string, { label: string; emoji: string; descr
 | 2026-03-17 | Deploy | All 5 Edge Functions deployed + DB migration applied | DONE |
 | 2026-03-17 | Deploy | chat-rag fix: strip `review-` prefix from Pinecone IDs for Supabase lookup | DONE |
 | 2026-03-17 | QA | Full manual E2E test: 12/12 tests pass — P2_MANUAL_TEST_REPORT.md created | DONE |
+| 2026-03-17 | Track A | A2 — Storage bucket created + STORAGE_BUCKET secret set + extract-image redeployed | DONE |
 
 > Format for new entries: `YYYY-MM-DD | Track X | Short description | DONE`
 

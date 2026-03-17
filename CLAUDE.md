@@ -272,7 +272,7 @@ PINECONE_INDEX=reviewlensai
 SUPABASE_SERVICE_ROLE_KEY=        # admin operations inside Edge Functions
 
 # P2 additions
-SUPABASE_STORAGE_BUCKET=reviews-media
+STORAGE_BUCKET=reviews-media
 ```
 
 ---

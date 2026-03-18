@@ -263,7 +263,10 @@ ReviewLensAI/
 | # | Deliverable | Link |
 |---|---|---|
 | 1 | GitHub Repository | https://github.com/aidenmak0624/ReviewLensAI |
-| 2 | AI Session Transcripts | `/ai-transcripts/` directory in this repo |
-| 3 | Live Application | https://review-lens-ai-five.vercel.app/ |
+| 2 | Live Application | https://review-lens-ai-five.vercel.app/ |
+| 3 | Landing Page | https://review-lens-ai-nzjj.vercel.app |
 | 4 | Loom Demo | https://www.loom.com/share/9a06e123a9d844bba2385e1d01b340cd |
-| 5 | README | This file |
+| 5 | AI Session Transcripts | `/ai-transcripts/` directory in this repo |
+| 6 | Cost & Maintenance Plan | `/development-plan/docs/` in this repo |
+| 7 | Test Suite | 168 unit tests + 6/6 LLM eval (promptfoo) |
+| 8 | README | This file |

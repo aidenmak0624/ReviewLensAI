@@ -258,6 +258,22 @@ ReviewLensAI/
 
 ---
 
+## Development Timeline
+
+| Date | Milestone |
+|---|---|
+| Mar 14 | Received assignment |
+| Mar 15 | Day 1 — Planning & research |
+| Mar 16 | Day 2 — Progress 1: MVP built and deployed |
+| Mar 17 | Day 3 — Progress 2: Enhanced features, testing, landing page |
+| Mar 18 | Final polish — README, Loom demo, submission |
+
+**Total active development:** 3 days (Mar 15–17) · **Total OpenAI API spend:** $1.28
+
+> Full day-by-day breakdown: [`development-plan/docs/TIMELINE.md`](development-plan/docs/TIMELINE.md)
+
+---
+
 ## Deliverables
 
 | # | Deliverable | Link |

@@ -34,3 +34,6 @@ dist-ssr
 .env.local
 apps/landing/.next/
 apps/landing/node_modules/
+supabase/.temp/
+*.Rhistory
+~

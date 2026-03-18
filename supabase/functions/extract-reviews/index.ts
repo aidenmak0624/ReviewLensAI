@@ -252,6 +252,9 @@ Deno.serve(async (req) => {
 
       console.log(`Fetching URL: ${url}`);
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
         const pageResponse = await fetch(url, {
           headers: {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -259,7 +262,9 @@ Deno.serve(async (req) => {
             "Accept-Language": "en-US,en;q=0.9",
           },
           redirect: "follow",
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
 
         if (!pageResponse.ok) {
           return new Response(
@@ -298,10 +303,13 @@ Deno.serve(async (req) => {
         inputText = cleaned.length > 60000 ? cleaned.substring(0, 60000) : cleaned;
         console.log(`Fetched ${html.length} chars HTML → ${inputText.length} chars cleaned text`);
       } catch (fetchErr) {
+        const isTimeout = fetchErr.name === "AbortError";
         return new Response(
           JSON.stringify({
-            error: "FETCH_ERROR",
-            message: `Could not reach URL: ${fetchErr.message}. Try CSV upload or paste instead.`,
+            error: isTimeout ? "FETCH_TIMEOUT" : "FETCH_ERROR",
+            message: isTimeout
+              ? "The site took too long to respond (likely blocking automated requests). Try Trustpilot, G2, or paste reviews manually instead."
+              : `Could not reach URL: ${fetchErr.message}. Try CSV upload or paste instead.`,
           }),
           { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );

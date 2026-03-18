@@ -163,19 +163,31 @@ export default function NewProduct() {
         const mode = activeTab;
         const input = activeTab === "url" ? urlInput : rawInput;
 
-        const { data, error: fnError } = await supabase.functions.invoke(
-          "extract-reviews",
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+        const response = await fetch(
+          `${supabaseUrl}/functions/v1/extract-reviews`,
           {
-            body: {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${supabaseKey}`,
+              apikey: supabaseKey,
+            },
+            body: JSON.stringify({
               mode,
               raw_input: input,
               product_id: "preview",
-            },
+            }),
           }
         );
 
-        if (fnError) throw new Error(fnError.message);
-        if (data?.error) throw new Error(data.message || data.error);
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(data.message || data.error || `Extraction failed (${response.status})`);
+        }
 
         if (!data?.reviews?.length) {
           throw new Error("No reviews could be extracted from the input. Please check your data format.");

@@ -24,6 +24,22 @@ const TABS = [
   { id: "image", label: "Image", icon: Camera },
 ];
 
+const URL_PLATFORM_MAP = [
+  { pattern: /trustpilot\.com/i, value: "trustpilot" },
+  { pattern: /amazon\.(com|ca|co\.uk|de|fr|co\.jp|in|com\.au)/i, value: "amazon" },
+  { pattern: /g2\.com/i, value: "g2" },
+  { pattern: /yelp\.(com|ca|co\.uk)/i, value: "yelp" },
+  { pattern: /google\.(com|ca|co\.uk)\/maps/i, value: "google_maps" },
+  { pattern: /capterra\.com/i, value: "capterra" },
+];
+
+function detectPlatformFromUrl(url) {
+  for (const { pattern, value } of URL_PLATFORM_MAP) {
+    if (pattern.test(url)) return value;
+  }
+  return null;
+}
+
 const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
 const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20MB
 
@@ -429,8 +445,13 @@ export default function NewProduct() {
                 <input
                   type="url"
                   value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
-                  placeholder="https://www.g2.com/products/notion/reviews"
+                  onChange={(e) => {
+                    const url = e.target.value;
+                    setUrlInput(url);
+                    const detected = detectPlatformFromUrl(url);
+                    if (detected) setPlatform(detected);
+                  }}
+                  placeholder="https://www.trustpilot.com/review/notion.so"
                   className="w-full px-3 py-2 border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 />
                 <p className="text-xs text-muted-foreground mt-2">

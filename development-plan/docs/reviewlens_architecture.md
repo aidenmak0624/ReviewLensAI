@@ -461,8 +461,9 @@ npm run build && vercel --prod
 
 ### 9.1 If Given More Time
 
-- URL scraping via a Browserless.io free-tier endpoint (avoids running Playwright in Edge Functions)
-- Citation UI — inline [Review 3] links in chat open the source review in a side panel
-- Incremental ingestion — re-scrape on a schedule and add only new reviews (delta upsert to Pinecone)
+- PDF ingestion with page-level citations and OCR fallback
+- URL scraper pagination — currently fetches page 1 only, would extend to pages 1–5 for full corpus
+- Multi-file batch upload — currently accepts one CSV or one image at a time; would support drag-in-10 for bulk ingestion
+- Incremental re-ingestion — re-scrape on a schedule and add only new reviews (delta upsert to Pinecone)
 - Sentiment scoring at ingest time (positive/neutral/negative label per review via a lightweight classifier)
-- Export — download full Q&A session as PDF or Markdown for analyst reporting
+- Multi-model routing — Claude Haiku for simple scope guard checks, GPT-4o only for complex reasoning (significant cost reduction at scale)

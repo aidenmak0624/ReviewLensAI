@@ -3,7 +3,7 @@
 > AI-powered review intelligence platform. Ingest customer reviews from any source, analyse sentiment and themes, and query your data through a guardrailed RAG chat interface with verifiable, clickable citations.
 
 **Live App:** https://review-lens-ai-five.vercel.app/
-**Landing Page:** https://reviewlens-landing.vercel.app/
+**Landing Page:** [https://reviewlens-landing.vercel.app/](https://review-lens-ai-nzjj.vercel.app)
 
 ---
 

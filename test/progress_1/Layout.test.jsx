@@ -1,6 +1,20 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+vi.mock("../../src/context/AuthContext", () => ({
+  useAuth: () => ({
+    user: { id: "test-user-1", email: "tester@example.com" },
+    session: { access_token: "test-token" },
+    loading: false,
+    signIn: vi.fn(),
+    signUp: vi.fn(),
+    signOut: vi.fn(),
+  }),
+  AuthProvider: ({ children }) => children,
+  getAccessToken: vi.fn().mockResolvedValue("test-token"),
+}));
+
 import Layout from "../../src/components/Layout";
 
 function renderWithRouter(ui, { route = "/" } = {}) {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { supabase } from "../api/supabaseClient";
+import { getAccessToken } from "../context/AuthContext";
 import { ArrowLeft, FileText, BarChart3, MessageCircle, Sparkles, Loader2 } from "lucide-react";
 import { cn } from "../lib/utils";
 import IngestionSummary from "../components/product/IngestionSummary";
@@ -67,6 +68,7 @@ export default function Product() {
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const token = await getAccessToken();
 
       // Simulate loading steps for UX (the API is a single call)
       const stepTimer1 = setTimeout(() => setInsightStep(1), 3000);
@@ -78,7 +80,7 @@ export default function Product() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${supabaseKey}`,
+            Authorization: `Bearer ${token}`,
             apikey: supabaseKey,
           },
           body: JSON.stringify({ product_id: product.id }),
@@ -90,7 +92,9 @@ export default function Product() {
 
       if (!response.ok) {
         const errBody = await response.json().catch(() => ({}));
-        throw new Error(errBody.error || `Request failed (${response.status})`);
+        throw new Error(
+          errBody.message || errBody.error || `Request failed (${response.status})`
+        );
       }
 
       const data = await response.json();

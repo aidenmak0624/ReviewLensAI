@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Globe, FileSpreadsheet, ClipboardPaste, Camera, Loader2, AlertCircle, Upload, X } from "lucide-react";
 import { cn } from "../lib/utils";
 import { supabase } from "../api/supabaseClient";
+import { useAuth, getAccessToken } from "../context/AuthContext";
 import CSVUploader from "../components/ingestion/CSVUploader";
 import PasteReviews from "../components/ingestion/PasteReviews";
 import ReviewPreview from "../components/ingestion/ReviewPreview";
@@ -45,6 +46,7 @@ const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20MB
 
 export default function NewProduct() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [productName, setProductName] = useState("");
   const [platform, setPlatform] = useState("g2");
   const [activeTab, setActiveTab] = useState("csv");
@@ -143,6 +145,7 @@ export default function NewProduct() {
 
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const token = await getAccessToken();
 
         const response = await fetch(
           `${supabaseUrl}/functions/v1/extract-image`,
@@ -150,7 +153,7 @@ export default function NewProduct() {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${supabaseKey}`,
+              Authorization: `Bearer ${token}`,
               apikey: supabaseKey,
             },
             body: JSON.stringify({
@@ -163,7 +166,9 @@ export default function NewProduct() {
 
         if (!response.ok) {
           const errBody = await response.json().catch(() => ({}));
-          throw new Error(errBody.error || `Image extraction failed (${response.status})`);
+          throw new Error(
+            errBody.message || errBody.error || `Image extraction failed (${response.status})`
+          );
         }
 
         const data = await response.json();
@@ -181,6 +186,7 @@ export default function NewProduct() {
 
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const token = await getAccessToken();
 
         const response = await fetch(
           `${supabaseUrl}/functions/v1/extract-reviews`,
@@ -188,7 +194,7 @@ export default function NewProduct() {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${supabaseKey}`,
+              Authorization: `Bearer ${token}`,
               apikey: supabaseKey,
             },
             body: JSON.stringify({
@@ -239,6 +245,7 @@ export default function NewProduct() {
           platform,
           source_url: activeTab === "url" ? urlInput : null,
           status: "ingesting",
+          user_id: user.id,
         })
         .select("id")
         .single();
@@ -298,10 +305,11 @@ export default function NewProduct() {
 
       // 4. Embed reviews in Pinecone
       const reviewIds = insertedReviews.map((r) => r.id);
+      // Namespace is resolved server-side from the product row — never sent by the client
       const { data: embedData, error: embedError } = await supabase.functions.invoke(
         "embed-reviews",
         {
-          body: { product_id: productId, namespace, review_ids: reviewIds },
+          body: { product_id: productId, review_ids: reviewIds },
         }
       );
 

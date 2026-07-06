@@ -13,6 +13,8 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import openai from "../_shared/openai.ts";
 import { supabase } from "../_shared/supabase.ts";
+import { requireUser, ownsProduct, forbidden } from "../_shared/auth.ts";
+import { enforceRateLimit } from "../_shared/ratelimit.ts";
 
 interface ExtractedReview {
   reviewer_name: string;
@@ -28,6 +30,9 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const { user, errorResponse } = await requireUser(req);
+    if (errorResponse) return errorResponse;
+
     const { base64Image, mimeType, productId } = await req.json();
 
     if (!base64Image || !mimeType || !productId) {
@@ -65,7 +70,7 @@ Deno.serve(async (req) => {
     if (productId !== "preview") {
       const { data: product, error: productError } = await supabase
         .from("products")
-        .select("id, name")
+        .select("id, name, user_id")
         .eq("id", productId)
         .single();
 
@@ -78,7 +83,14 @@ Deno.serve(async (req) => {
           }
         );
       }
+      if (!ownsProduct(product, user.id)) {
+        return forbidden("You can only ingest reviews into your own products.");
+      }
     }
+
+    // Per-user daily ingestion quota — checked before storage upload and vision call
+    const limited = await enforceRateLimit(user.id, "ingest");
+    if (limited) return limited;
 
     // ── Upload original image to Supabase Storage ──────────────────
     const ext = mimeType.split("/")[1] === "jpeg" ? "jpg" : mimeType.split("/")[1];

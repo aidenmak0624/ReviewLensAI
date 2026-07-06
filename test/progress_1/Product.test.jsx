@@ -8,6 +8,19 @@ vi.mock("../../src/api/supabaseClient", () => ({
   },
 }));
 
+vi.mock("../../src/context/AuthContext", () => ({
+  useAuth: () => ({
+    user: { id: "test-user-1", email: "tester@example.com" },
+    session: { access_token: "test-token" },
+    loading: false,
+    signIn: vi.fn(),
+    signUp: vi.fn(),
+    signOut: vi.fn(),
+  }),
+  AuthProvider: ({ children }) => children,
+  getAccessToken: vi.fn().mockResolvedValue("test-token"),
+}));
+
 import Product from "../../src/pages/Product";
 import { supabase } from "../../src/api/supabaseClient";
 

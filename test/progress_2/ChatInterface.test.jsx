@@ -1,5 +1,19 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+vi.mock("../../src/context/AuthContext", () => ({
+  useAuth: () => ({
+    user: { id: "test-user-1", email: "tester@example.com" },
+    session: { access_token: "test-token" },
+    loading: false,
+    signIn: vi.fn(),
+    signUp: vi.fn(),
+    signOut: vi.fn(),
+  }),
+  AuthProvider: ({ children }) => children,
+  getAccessToken: vi.fn().mockResolvedValue("test-token"),
+}));
+
 import ChatInterface from "../../src/components/chat/ChatInterface";
 
 // Mock import.meta.env

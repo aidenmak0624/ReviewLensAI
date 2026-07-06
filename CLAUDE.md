@@ -1,4 +1,6 @@
-# ReviewLens AI — CLAUDE.md
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 > **Read this entire file at the start of every session before writing a single line of code.**
 
@@ -11,7 +13,8 @@ ReviewLens AI is a full-stack AI SaaS that ingests customer reviews from multipl
 | | |
 |---|---|
 | **Live URL** | https://review-lens-ai-five.vercel.app/ |
-| **Frontend** | React 18 + Vite + Tailwind CSS + shadcn/ui |
+| **Frontend** | React 19 + Vite 8 + Tailwind CSS 4 (`@tailwindcss/postcss`) — shadcn-style custom components with `cn()`; the shadcn/ui package is NOT installed |
+| **Landing Page** | Next.js 14 + React 18 + Framer Motion — separate package in `apps/landing/` |
 | **Backend** | Supabase (Postgres + Edge Functions + Storage) |
 | **Vector DB** | Pinecone (`reviewlensai` index, 1536d cosine) |
 | **AI** | OpenAI GPT-4o (chat / vision) + text-embedding-3-small (embeddings) |
@@ -23,11 +26,12 @@ ReviewLens AI is a full-stack AI SaaS that ingests customer reviews from multipl
 
 | Phase | Status | Tracker |
 |---|---|---|
-| **Progress_1** — MVP (ingestion → embedding → RAG chat) | ✅ COMPLETE | `development-plan/progress_1/progress_1_.md` |
-| **Progress_2** — Evidence drawer, skills, insight report | 🔄 ACTIVE | `development-plan/progress_2/PROGRESS_2.md` |
-| **Test Plan** | 🔄 Ongoing | `TEST_PLAN.md` |
-| **Landing Page** | ⏳ After P2 | `LANDING_PAGE.md` |
-| **Cost Estimation** | ⏳ After P2 | `COST_ESTIMATION.md` |
+| **Progress_1** — MVP (ingestion → embedding → RAG chat) | ✅ COMPLETE | `development-plan/progress_1/PROGRESS_1.md` |
+| **Progress_2** — Evidence drawer, skills, insight report | ✅ COMPLETE (92/92 tasks, manual report 20/20) | `development-plan/progress_2/PROGRESS_2.md` |
+| **Test Plan** | ✅ Written | `development-plan/docs/TEST_PLAN.md` |
+| **Landing Page** | ✅ SHIPPED — `apps/landing/` | Spec: `development-plan/docs/ReviewLens_Landing_Page_Spec.md` |
+| **Cost Estimation** | ✅ Written | `development-plan/docs/ReviewLens_Cost_Estimation.md` + `ReviewLens_Cost_and_Maintenance.md` |
+| **Progress_3** — auth + per-user rate limiting | 🔄 ACTIVE (code complete, deploy pending) | `development-plan/progress_3/PROGRESS_3.md` |
 
 ---
 
@@ -36,12 +40,12 @@ ReviewLens AI is a full-stack AI SaaS that ingests customer reviews from multipl
 ### Rule 1 — Audit First, Code Second
 Run this at the start of **every** session. Report results before touching any file:
 ```bash
-npm run test        # must be all green
+npm run test        # must be all green — 188/188 as of 2026-07-06
 git status          # must be clean working tree
 ```
 
 ### Rule 2 — One Task at a Time
-Open `PROGRESS_2.md`. Find the **first unchecked box**. Complete it fully. Mark `[x]`. Run tests. Only then move on.
+P1 and P2 trackers are fully checked — new work comes from the user's request or a future P3 tracker. Work one task at a time: complete it fully, run tests, mark it done in the active tracker, only then move on.
 
 ### Rule 3 — Definition of Done
 A task is **DONE** only when all four are true:
@@ -70,11 +74,12 @@ All API keys via environment variables only. Never hardcode.
 ```
 ReviewLensAI/
 ├── .claude/
-│   ├── launch.json                       # Dev server config (Vite port 5174)
-│   └── settings.local.json
+│   ├── launch.json                       # Dev server config (runs Vite with --port 5174)
+│   ├── settings.local.json
+│   └── skills/                           # Local Claude Code skills
 ├── .env / .env.example
 ├── CLAUDE.md                             # ← THIS FILE
-├── TEST_PLAN.md                          # All test cases + results log
+├── README.md                             # Assignment README — live URLs, setup, P3 vision
 │
 ├── src/
 │   ├── main.jsx
@@ -86,6 +91,7 @@ ReviewLensAI/
 │   │   └── utils.js                      # cn() helper
 │   ├── components/
 │   │   ├── Layout.jsx                    # App shell — navbar + <Outlet>
+│   │   ├── dashboard/                    # EMPTY — leftover directory
 │   │   ├── chat/
 │   │   │   ├── ChatInterface.jsx         # SSE stream consumer + message state
 │   │   │   ├── MessageBubble.jsx         # Bubbles + [Review N] citation badges
@@ -106,6 +112,9 @@ ReviewLensAI/
 │       ├── NewProduct.jsx                # 3-step ingestion wizard
 │       └── Product.jsx                   # Detail page (Summary / Reviews / Chat / Insight tabs)
 │
+├── apps/
+│   └── landing/                          # Next.js 14 landing page — SEPARATE package (own package.json; cd in, npm install, npm run dev → port 3000)
+│
 ├── supabase/
 │   ├── functions/
 │   │   ├── _shared/
@@ -124,16 +133,20 @@ ReviewLensAI/
 │       └── 002_multimodal_columns.sql    # NEW P2 — source_modality, spatial_metadata
 │
 ├── development-plan/
+│   ├── docs/                             # TEST_PLAN.md · TIMELINE.md · cost docs · landing spec · architecture · prompt library
 │   ├── progress_1/
-│   │   ├── progress_1_.md
-│   │   └── USER_WORKFLOW.md
+│   │   ├── PROGRESS_1.md                 # P1 tracker (complete)
+│   │   └── USER_WORKFLOW_P1.md
 │   ├── progress_2/
-│   │   ├── PROGRESS_2.md                 # P2 task tracker
+│   │   ├── PROGRESS_2.md                 # P2 tracker (complete — 92/92)
+│   │   ├── PROGRESS2_PLAN.md
 │   │   ├── P2_MANUAL_TEST_REPORT.md      # Manual test report (20/20 pass)
 │   │   └── USER_WORKFLOW_P2.md           # P2 user workflows
-│   └── screenshots/
-│       ├── progress_1/
-│       └── progress_2/
+│   └── screenshots/                      # progress_0 / progress_1 / progress_2
+│
+├── LLMtests/
+│   └── promptfoo/promptfooconfig.yaml    # promptfoo LLM eval matrix (6 cases)
+├── ai-transcripts/                       # Claude Code session logs (deliverable)
 │
 ├── test/
 │   ├── setup.js
@@ -192,6 +205,7 @@ ReviewLensAI/
 | rating_distribution | JSONB | `{1: n, 2: n, 3: n, 4: n, 5: n}` |
 | ingestion_method | TEXT | `csv` / `paste` / `url` / `image` |
 | total_reviews | INTEGER | Computed on ingestion |
+| user_id | UUID FK | **P3** — → auth.users.id; NULL = public demo product (read-only for everyone) |
 | created_at | TIMESTAMPTZ | |
 
 ### `reviews` table
@@ -210,6 +224,16 @@ ReviewLensAI/
 | source_file_name | TEXT | **P2** | Original filename or Supabase Storage URL |
 | spatial_metadata | JSONB | **P2** | Bounding box `{x, y, width, height}` for highlight overlay |
 | created_at | TIMESTAMPTZ | P1 | |
+
+### `usage_counters` table (P3)
+| Column | Type | Notes |
+|---|---|---|
+| user_id | UUID FK | → auth.users.id, part of PK |
+| action | TEXT | `chat` / `ingest` / `insight`, part of PK |
+| day | DATE | UTC day, part of PK |
+| count | INTEGER | Incremented atomically via `increment_usage()` RPC (service-role only) |
+
+**Auth & rate limiting (P3):** Whole app behind Supabase email+password login. RLS (migration 004): users see their own products + NULL-owner demo products. Edge Functions validate the caller's JWT via `_shared/auth.ts` (`requireUser`) and enforce per-user daily quotas via `_shared/ratelimit.ts` — chat 50/day, ingest 5/day, insight 10/day → HTTP 429 `{ error: "RATE_LIMITED", message }`.
 
 ---
 
@@ -277,7 +301,7 @@ PINECONE_INDEX=reviewlensai
 SUPABASE_SERVICE_ROLE_KEY=        # admin operations inside Edge Functions
 
 # P2 additions
-STORAGE_BUCKET=reviews-media
+STORAGE_BUCKET=reviews-media      # read by extract-image, defaults to reviews-media (NOTE: README says SUPABASE_STORAGE_BUCKET — that name is wrong, the code reads STORAGE_BUCKET)
 ```
 
 ---
@@ -286,11 +310,15 @@ STORAGE_BUCKET=reviews-media
 
 ```bash
 # Development
-npm run dev                            # Vite dev server — port 5174
+npm run dev                            # Vite dev server — port 5173 by default (.claude/launch.json uses --port 5174)
+npm run build                          # Production build
+npm run lint                           # ESLint (flat config)
+cd apps/landing && npm run dev         # Landing page (separate package) — port 3000
 
 # Testing — run after EVERY task
-npm run test                           # Vitest — all tests
-npm run test -- --watch                # Watch mode during development
+npm run test                           # Vitest single pass (`vitest run`) — see Rule 1 for known-failing baseline
+npx vitest                             # Watch mode (NOT `npm run test -- --watch` — that expands to `vitest run --watch`)
+npx vitest run test/progress_2/SkillSelector.test.jsx   # Run a single test file
 npm run test -- --coverage             # Coverage report
 
 # Supabase Edge Functions
@@ -303,8 +331,8 @@ supabase functions deploy generate-insight    # P2
 supabase db push                       # Apply pending migrations
 supabase secrets set KEY=value         # Set Edge Function environment secret
 
-# LLM evaluation
-npx promptfoo eval                     # Run TEST_PLAN.md test matrix
+# LLM evaluation — hits the DEPLOYED Edge Functions, not mocks
+npx promptfoo eval --config LLMtests/promptfoo/promptfooconfig.yaml
 ```
 
 ---
@@ -314,7 +342,7 @@ npx promptfoo eval                     # Run TEST_PLAN.md test matrix
 | Concern | Standard |
 |---|---|
 | Components | Functional React + hooks. No class components. |
-| Styling | Tailwind CSS utilities + shadcn/ui primitives. |
+| Styling | Tailwind CSS 4 utilities (`@tailwindcss/postcss`) + shadcn-style custom components. Use `cn()` from `src/lib/utils.js`. The shadcn/ui package is not installed — don't import from it. |
 | Animations | Framer Motion for EvidenceDrawer slide-in. CSS transitions for hover states. |
 | Edge Functions | TypeScript. Always `import cors from '../_shared/cors.ts'`. Wrap in try/catch. |
 | Error handling | Every Edge Fn: `return new Response(JSON.stringify({ error: msg }), { status: 4xx/5xx })` |
@@ -328,9 +356,9 @@ npx promptfoo eval                     # Run TEST_PLAN.md test matrix
 
 ```
 [ ] Read CLAUDE.md — confirm you understand the stack, schema, and P2 component specs
-[ ] npm run test     → all green
+[ ] npm run test     → all green (188/188)
 [ ] git status       → clean
-[ ] Open PROGRESS_2.md → identify first unchecked task
+[ ] Identify the active task (P1 & P2 complete — check PROGRESS_3.md for P3 state)
 [ ] Confirm task with user before starting
-[ ] After task: mark [x] → run tests → confirm green → stop
+[ ] After task: mark done in tracker → run tests → confirm no new failures → stop
 ```

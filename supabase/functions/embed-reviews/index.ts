@@ -2,6 +2,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 import openai from "../_shared/openai.ts";
 import { supabase } from "../_shared/supabase.ts";
 import { pineconeIndex } from "../_shared/pinecone.ts";
+import { requireUser, ownsProduct, forbidden } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -9,23 +10,50 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { product_id, namespace, review_ids } = await req.json();
+    const { user, errorResponse } = await requireUser(req);
+    if (errorResponse) return errorResponse;
 
-    if (!product_id || !namespace || !review_ids?.length) {
+    const { product_id, review_ids } = await req.json();
+
+    if (!product_id || !review_ids?.length) {
       return new Response(
         JSON.stringify({
           error: "INVALID_INPUT",
-          message: "product_id, namespace, and review_ids are required",
+          message: "product_id and review_ids are required",
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Fetch reviews from Postgres
+    // Resolve the namespace server-side from the product row — NEVER from the
+    // client body, which would let a caller poison another product's vectors.
+    const { data: product, error: productError } = await supabase
+      .from("products")
+      .select("id, user_id, pinecone_namespace")
+      .eq("id", product_id)
+      .single();
+
+    if (productError || !product) {
+      return new Response(
+        JSON.stringify({ error: "NOT_FOUND", message: "Product not found" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Only the owner ever ingests — demo products (null owner) never re-embed.
+    if (!ownsProduct(product, user.id)) {
+      return forbidden("You can only embed reviews for your own products.");
+    }
+
+    const namespace = product.pinecone_namespace || `product-${product.id}`;
+
+    // Fetch reviews from Postgres — scoped to this product so a caller can't
+    // embed another product's review rows into their namespace
     const { data: reviews, error: fetchError } = await supabase
       .from("reviews")
       .select("id, reviewer_name, rating, review_text, review_date, source_modality")
-      .in("id", review_ids);
+      .in("id", review_ids)
+      .eq("product_id", product_id);
 
     if (fetchError) {
       throw new Error(`Failed to fetch reviews: ${fetchError.message}`);

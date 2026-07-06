@@ -121,7 +121,7 @@ supabase secrets set OPENAI_API_KEY=your_openai_key
 supabase secrets set PINECONE_API_KEY=your_pinecone_key
 supabase secrets set PINECONE_INDEX=reviewlensai
 supabase secrets set SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-supabase secrets set SUPABASE_STORAGE_BUCKET=reviews-media
+supabase secrets set STORAGE_BUCKET=reviews-media
 ```
 
 ### 3. Database
@@ -159,14 +159,13 @@ npm run dev
 ### Unit tests (Vitest)
 ```bash
 npm run test
-# 168/173 passing
-# 5 pre-existing timeout failures in NewProduct rendering — unrelated to core features
+# 188/188 passing
 ```
 
 ### LLM Evaluation (promptfoo)
 ```bash
 npm install -g promptfoo
-npx promptfoo eval --config tests/promptfoo/promptfooconfig.yaml
+npx promptfoo eval --config LLMtests/promptfoo/promptfooconfig.yaml
 # 6/6 test cases passing
 ```
 
@@ -193,7 +192,8 @@ The E2E test covers the complete user journey:
 
 ## Assumptions Made
 
-- **No authentication** — RLS is set to public read/write. Multi-tenant auth is a P3 feature. For the assignment scope, a single shared workspace is sufficient.
+- **Email + password auth with per-user data isolation** (P3) — Supabase Auth guards the whole app; products are owned per user and enforced by RLS. Pre-existing data remains visible to all users as read-only demo products.
+- **Per-user daily rate limits** (P3) — 50 chat questions, 5 product ingestions, and 10 insight reports per user per day (UTC reset), enforced inside the Edge Functions before any OpenAI spend. Over-limit requests return HTTP 429 with a friendly message.
 - **Single-page scraping** — URL scraper fetches page 1 only. Full pagination (5+ pages) is a known P3 improvement.
 - **PDF ingestion deferred** — Image upload covers screenshots. Full PDF OCR pipeline is documented in the P3 roadmap.
 - **Supabase free tier** — Project may pause after 7 days of inactivity. Visit the app or restore via the Supabase dashboard if it appears offline.
@@ -209,7 +209,6 @@ The E2E test covers the complete user journey:
 
 ### What I'd Do Differently With More Time
 
-- Add user authentication (currently public RLS — fine for demo, not for multi-tenant production)
 - PDF ingestion with page-level citations and OCR fallback
 - URL scraper pagination — currently fetches page 1 only, would extend to pages 1–5 for full corpus
 - Multi-file upload — currently accepts one CSV or one image at a time; would support batch upload for bulk ingestion
@@ -284,5 +283,5 @@ ReviewLensAI/
 | 4 | Loom Demo | https://www.loom.com/share/9a06e123a9d844bba2385e1d01b340cd |
 | 5 | AI Session Transcripts | [`ai-transcripts/`](ai-transcripts/) |
 | 6 | Cost & Maintenance Plan | [`development-plan/docs/`](development-plan/docs/) |
-| 7 | Test Suite | 168 unit tests + 6/6 LLM eval (promptfoo) |
+| 7 | Test Suite | 188 unit tests + 6/6 LLM eval (promptfoo) |
 | 8 | README | This file |

@@ -75,14 +75,21 @@ function ProductCard({ product }) {
     >
       <div className="flex items-start justify-between mb-3">
         <h3 className="font-semibold text-lg truncate pr-2">{product.name}</h3>
-        <span
-          className={cn(
-            "text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap",
-            STATUS_STYLES[product.status] || STATUS_STYLES.ingesting
+        <div className="flex items-center gap-1.5">
+          {product.user_id == null && (
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap bg-gray-100 text-gray-600">
+              Demo
+            </span>
           )}
-        >
-          {product.status}
-        </span>
+          <span
+            className={cn(
+              "text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap",
+              STATUS_STYLES[product.status] || STATUS_STYLES.ingesting
+            )}
+          >
+            {product.status}
+          </span>
+        </div>
       </div>
 
       {product.platform && (

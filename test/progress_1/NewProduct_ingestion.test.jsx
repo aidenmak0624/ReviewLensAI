@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const mockNavigate = vi.fn();
 vi.mock("react-router-dom", async () => {
@@ -15,8 +15,20 @@ vi.mock("../../src/api/supabaseClient", () => ({
   },
 }));
 
+vi.mock("../../src/context/AuthContext", () => ({
+  useAuth: () => ({
+    user: { id: "test-user-1", email: "tester@example.com" },
+    session: { access_token: "test-token" },
+    loading: false,
+    signIn: vi.fn(),
+    signUp: vi.fn(),
+    signOut: vi.fn(),
+  }),
+  AuthProvider: ({ children }) => children,
+  getAccessToken: vi.fn().mockResolvedValue("test-token"),
+}));
+
 import NewProduct from "../../src/pages/NewProduct";
-import { supabase } from "../../src/api/supabaseClient";
 
 function renderNewProduct() {
   return render(
@@ -27,8 +39,17 @@ function renderNewProduct() {
 }
 
 describe("NewProduct — Phase 1 (ingestion flow)", () => {
+  // Extraction goes through raw fetch to the extract-reviews Edge Function,
+  // not supabase.functions.invoke — mock the actual transport.
+  let fetchSpy;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    fetchSpy = vi.spyOn(globalThis, "fetch");
+  });
+
+  afterEach(() => {
+    fetchSpy.mockRestore();
   });
 
   it("disables extract button when product name is empty", () => {
@@ -73,7 +94,7 @@ describe("NewProduct — Phase 1 (ingestion flow)", () => {
 
   it("shows extracting state when extract button is clicked", async () => {
     // Mock the edge function to never resolve (keeps loading state)
-    supabase.functions.invoke.mockReturnValue(new Promise(() => {}));
+    fetchSpy.mockReturnValue(new Promise(() => {}));
 
     renderNewProduct();
     // Switch to paste and add content
@@ -90,9 +111,10 @@ describe("NewProduct — Phase 1 (ingestion flow)", () => {
   });
 
   it("shows error banner when extraction fails", async () => {
-    supabase.functions.invoke.mockResolvedValue({
-      data: null,
-      error: { message: "OpenAI API error" },
+    fetchSpy.mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: async () => ({ message: "OpenAI API error" }),
     });
 
     renderNewProduct();
@@ -112,8 +134,9 @@ describe("NewProduct — Phase 1 (ingestion flow)", () => {
   });
 
   it("shows preview table after successful extraction", async () => {
-    supabase.functions.invoke.mockResolvedValue({
-      data: {
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      json: async () => ({
         reviews: [
           {
             reviewer_name: "John",
@@ -130,8 +153,7 @@ describe("NewProduct — Phase 1 (ingestion flow)", () => {
         ],
         count: 2,
         extraction_method: "openai_function_calling",
-      },
-      error: null,
+      }),
     });
 
     renderNewProduct();
@@ -153,14 +175,14 @@ describe("NewProduct — Phase 1 (ingestion flow)", () => {
   });
 
   it("shows back to input button on preview step", async () => {
-    supabase.functions.invoke.mockResolvedValue({
-      data: {
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      json: async () => ({
         reviews: [
           { reviewer_name: "Test", rating: 4, review_text: "Good", review_date: null },
         ],
         count: 1,
-      },
-      error: null,
+      }),
     });
 
     renderNewProduct();
@@ -179,14 +201,14 @@ describe("NewProduct — Phase 1 (ingestion flow)", () => {
   });
 
   it("returns to input step when back button is clicked", async () => {
-    supabase.functions.invoke.mockResolvedValue({
-      data: {
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      json: async () => ({
         reviews: [
           { reviewer_name: "Test", rating: 4, review_text: "Good", review_date: null },
         ],
         count: 1,
-      },
-      error: null,
+      }),
     });
 
     renderNewProduct();
@@ -205,16 +227,16 @@ describe("NewProduct — Phase 1 (ingestion flow)", () => {
   });
 
   it("shows confirm button with review count", async () => {
-    supabase.functions.invoke.mockResolvedValue({
-      data: {
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      json: async () => ({
         reviews: [
           { reviewer_name: "A", rating: 5, review_text: "Great", review_date: null },
           { reviewer_name: "B", rating: 4, review_text: "Good", review_date: null },
           { reviewer_name: "C", rating: 3, review_text: "OK", review_date: null },
         ],
         count: 3,
-      },
-      error: null,
+      }),
     });
 
     renderNewProduct();

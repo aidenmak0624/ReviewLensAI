@@ -2,16 +2,17 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import MessageBubble from "./MessageBubble";
 import SkillSelector from "./SkillSelector";
 import { Send, Loader2, Trash2 } from "lucide-react";
+import { useAuth, getAccessToken } from "../../context/AuthContext";
 
-/** Build a localStorage key for this product + skill combo */
-function storageKey(productId, skill) {
-  return `reviewlens_chat_${productId}_${skill}`;
+/** Build a localStorage key for this user + product + skill combo */
+function storageKey(userId, productId, skill) {
+  return `reviewlens_chat_${userId}_${productId}_${skill}`;
 }
 
 /** Load persisted chat from localStorage */
-function loadChat(productId, skill) {
+function loadChat(userId, productId, skill) {
   try {
-    const raw = localStorage.getItem(storageKey(productId, skill));
+    const raw = localStorage.getItem(storageKey(userId, productId, skill));
     if (raw) {
       const parsed = JSON.parse(raw);
       return {
@@ -26,12 +27,12 @@ function loadChat(productId, skill) {
 }
 
 /** Save chat to localStorage */
-function saveChat(productId, skill, messages, citations) {
+function saveChat(userId, productId, skill, messages, citations) {
   try {
     // Only save completed messages (skip empty assistant placeholders)
     const toSave = messages.filter((m) => m.content);
     localStorage.setItem(
-      storageKey(productId, skill),
+      storageKey(userId, productId, skill),
       JSON.stringify({ messages: toSave, citations })
     );
   } catch {
@@ -40,10 +41,12 @@ function saveChat(productId, skill, messages, citations) {
 }
 
 export default function ChatInterface({ product, onCitationClick }) {
+  const { user } = useAuth();
+  const userId = user?.id ?? "anon";
   const [selectedSkill, setSelectedSkill] = useState("general");
 
   // Load persisted chat on mount and skill change
-  const initial = loadChat(product.id, "general");
+  const initial = loadChat(userId, product.id, "general");
   const [messages, setMessages] = useState(initial.messages);
   const [citations, setCitations] = useState(initial.citations);
 
@@ -54,9 +57,9 @@ export default function ChatInterface({ product, onCitationClick }) {
   // Persist chat whenever messages or citations change (debounced via effect)
   useEffect(() => {
     if (!isStreaming && messages.length > 0) {
-      saveChat(product.id, selectedSkill, messages, citations);
+      saveChat(userId, product.id, selectedSkill, messages, citations);
     }
-  }, [messages, citations, isStreaming, product.id, selectedSkill]);
+  }, [messages, citations, isStreaming, userId, product.id, selectedSkill]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -66,26 +69,26 @@ export default function ChatInterface({ product, onCitationClick }) {
     (skill) => {
       // Save current chat before switching
       if (messages.length > 0) {
-        saveChat(product.id, selectedSkill, messages, citations);
+        saveChat(userId, product.id, selectedSkill, messages, citations);
       }
       setSelectedSkill(skill);
       // Load chat for the new skill
-      const saved = loadChat(product.id, skill);
+      const saved = loadChat(userId, product.id, skill);
       setMessages(saved.messages);
       setCitations(saved.citations);
     },
-    [product.id, selectedSkill, messages, citations]
+    [userId, product.id, selectedSkill, messages, citations]
   );
 
   const handleClearChat = useCallback(() => {
     setMessages([]);
     setCitations({});
     try {
-      localStorage.removeItem(storageKey(product.id, selectedSkill));
+      localStorage.removeItem(storageKey(userId, product.id, selectedSkill));
     } catch {
       // ignore
     }
-  }, [product.id, selectedSkill]);
+  }, [userId, product.id, selectedSkill]);
 
   const handleSend = async () => {
     const question = input.trim();
@@ -102,12 +105,13 @@ export default function ChatInterface({ product, onCitationClick }) {
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const token = await getAccessToken();
 
       const response = await fetch(`${supabaseUrl}/functions/v1/chat-rag`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${supabaseKey}`,
+          Authorization: `Bearer ${token}`,
           apikey: supabaseKey,
         },
         body: JSON.stringify({
@@ -119,7 +123,17 @@ export default function ChatInterface({ product, onCitationClick }) {
       });
 
       if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
+        const errBody = await response.json().catch(() => ({}));
+        const err = new Error(
+          response.status === 429
+            ? errBody.message ||
+              "Daily chat limit reached. Your quota resets tomorrow."
+            : response.status === 401
+            ? "Your session expired. Please sign in again."
+            : `Request failed with status ${response.status}`
+        );
+        err.status = response.status;
+        throw err;
       }
 
       const reader = response.body.getReader();
@@ -198,7 +212,10 @@ export default function ChatInterface({ product, onCitationClick }) {
         const next = [...prev];
         next[next.length - 1] = {
           role: "assistant",
-          content: "Sorry, something went wrong. Please try again.",
+          content:
+            error.status === 429 || error.status === 401
+              ? error.message
+              : "Sorry, something went wrong. Please try again.",
         };
         return next;
       });

@@ -9,6 +9,19 @@ vi.mock("../../src/api/supabaseClient", () => ({
   },
 }));
 
+vi.mock("../../src/context/AuthContext", () => ({
+  useAuth: () => ({
+    user: { id: "test-user-1", email: "tester@example.com" },
+    session: { access_token: "test-token" },
+    loading: false,
+    signIn: vi.fn(),
+    signUp: vi.fn(),
+    signOut: vi.fn(),
+  }),
+  AuthProvider: ({ children }) => children,
+  getAccessToken: vi.fn().mockResolvedValue("test-token"),
+}));
+
 import NewProduct from "../../src/pages/NewProduct";
 
 function renderNewProduct() {
@@ -61,7 +74,7 @@ describe("NewProduct — Phase 0 (basic UI rendering)", () => {
     renderNewProduct();
     fireEvent.click(screen.getByText("URL"));
     expect(
-      screen.getByPlaceholderText(/g2\.com/i)
+      screen.getByPlaceholderText(/trustpilot\.com/i)
     ).toBeInTheDocument();
   });
 

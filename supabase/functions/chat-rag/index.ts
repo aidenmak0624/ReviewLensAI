@@ -15,6 +15,8 @@ import openai from "../_shared/openai.ts";
 import { pineconeIndex } from "../_shared/pinecone.ts";
 import { supabase } from "../_shared/supabase.ts";
 import { SKILL_PROMPTS } from "../_shared/skills.ts";
+import { requireUser, canReadProduct, forbidden } from "../_shared/auth.ts";
+import { enforceRateLimit } from "../_shared/ratelimit.ts";
 
 interface Message {
   role: "user" | "assistant";
@@ -28,6 +30,9 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const { user, errorResponse } = await requireUser(req);
+    if (errorResponse) return errorResponse;
+
     const { question, product_id, history = [], skill = "general" } = await req.json();
 
     if (!question || !product_id) {
@@ -41,7 +46,7 @@ Deno.serve(async (req) => {
     // NEVER trust client-supplied namespace — always resolve from Postgres
     const { data: product, error: productError } = await supabase
       .from("products")
-      .select("id, name, platform, pinecone_namespace, total_reviews")
+      .select("id, name, platform, pinecone_namespace, total_reviews, user_id")
       .eq("id", product_id)
       .single();
 
@@ -51,6 +56,13 @@ Deno.serve(async (req) => {
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Owner or public demo product only
+    if (!canReadProduct(product, user.id)) return forbidden();
+
+    // Per-user daily chat quota — checked before any OpenAI spend
+    const limited = await enforceRateLimit(user.id, "chat");
+    if (limited) return limited;
 
     const namespace = product.pinecone_namespace || `product-${product.id}`;
     const productName = product.name;

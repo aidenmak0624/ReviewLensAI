@@ -13,6 +13,8 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import openai from "../_shared/openai.ts";
 import { supabase } from "../_shared/supabase.ts";
+import { requireUser, canReadProduct, forbidden } from "../_shared/auth.ts";
+import { enforceRateLimit } from "../_shared/ratelimit.ts";
 
 interface Theme {
   theme: string;
@@ -48,6 +50,9 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const { user, errorResponse } = await requireUser(req);
+    if (errorResponse) return errorResponse;
+
     const { product_id } = await req.json();
 
     if (!product_id) {
@@ -60,7 +65,7 @@ Deno.serve(async (req) => {
     // Validate product exists and is ready
     const { data: product, error: productError } = await supabase
       .from("products")
-      .select("id, name, platform, status")
+      .select("id, name, platform, status, user_id")
       .eq("id", product_id)
       .single();
 
@@ -71,12 +76,20 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Owner or public demo product only
+    if (!canReadProduct(product, user.id)) return forbidden();
+
     if (product.status !== "ready") {
       return new Response(
         JSON.stringify({ error: "Product is not ready. Reviews must be embedded first." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Per-user daily insight quota — after the readiness guard so users don't
+    // burn quota on products that can't produce a report, before the 3 GPT-4o workers
+    const limited = await enforceRateLimit(user.id, "insight");
+    if (limited) return limited;
 
     // Fetch up to 80 reviews
     const { data: reviews, error: reviewsError } = await supabase

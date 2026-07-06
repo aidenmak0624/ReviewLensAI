@@ -1,9 +1,17 @@
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "../lib/utils";
-import { BarChart3, Plus, Home } from "lucide-react";
+import { BarChart3, Plus, Home, LogOut } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 export default function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/login");
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -46,6 +54,21 @@ export default function Layout() {
                 <Plus className="h-4 w-4" />
                 New Product
               </Link>
+
+              {/* User menu */}
+              <div className="flex items-center gap-1 ml-2 pl-3 border-l border-border">
+                <span className="text-sm text-muted-foreground hidden sm:block max-w-48 truncate">
+                  {user?.email}
+                </span>
+                <button
+                  onClick={handleSignOut}
+                  title="Sign out"
+                  className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="sm:hidden">Sign out</span>
+                </button>
+              </div>
             </nav>
           </div>
         </div>

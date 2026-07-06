@@ -1,6 +1,8 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import openai from "../_shared/openai.ts";
 import { supabase } from "../_shared/supabase.ts";
+import { requireUser, ownsProduct, forbidden } from "../_shared/auth.ts";
+import { enforceRateLimit } from "../_shared/ratelimit.ts";
 
 const REVIEW_TOOL = {
   type: "function" as const,
@@ -215,6 +217,9 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const { user, errorResponse } = await requireUser(req);
+    if (errorResponse) return errorResponse;
+
     const { mode, raw_input, product_id } = await req.json();
 
     // Validate inputs
@@ -236,6 +241,30 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Ownership check when extracting into an existing product ("preview"
+    // extractions have no product row yet). Demo products are read-only.
+    if (product_id !== "preview") {
+      const { data: product, error: productError } = await supabase
+        .from("products")
+        .select("id, user_id")
+        .eq("id", product_id)
+        .single();
+
+      if (productError || !product) {
+        return new Response(
+          JSON.stringify({ error: "NOT_FOUND", message: "Product not found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (!ownsProduct(product, user.id)) {
+        return forbidden("You can only ingest reviews into your own products.");
+      }
+    }
+
+    // Per-user daily ingestion quota — checked before any page fetch or LLM work
+    const limited = await enforceRateLimit(user.id, "ingest");
+    if (limited) return limited;
 
     let reviews: any[] = [];
     let inputText = raw_input;
